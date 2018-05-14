@@ -9,7 +9,6 @@ output:
 
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -27,11 +26,11 @@ In order to show how we implemented our framework and how model components are t
 
 ## A test of our modelling framework
 
-Here, we present a working example of our modelling framwork. We use simulated communities based on niche and neutral dynamics in order to show how fixed and random effects capture different ecological processes. Also, we use strong and week traits in order to show how fixed and random effects capture neutral dynamics when traits are strong. Therefore, we simulated stochastic and deterministic metacommunities and use strong or weak traits in model selection. 
+Here, we present a working example of our modelling framwork. We use simulated communities based on niche and neutral dynamics in order to show how fixed and random effects capture different ecological processes. Also, we use strong and weak traits in order to show how fixed and random effects capture neutral dynamics when traits are strong. Therefore, we simulated stochastic and deterministic metacommunities and use strong or weak traits in model selection. 
 
-We simulated metacommunities with the same data structure as as our abundance data of ferns in three mountain chains in southern Brazil. Then, we make poisson and negative binomial samples of communities and use samples from the metacommunities in our model selection framework.
+We simulated metacommunities with the same data structure as our abundance data of ferns in three mountain chains in southern Brazil. Then, we make poisson and negative binomial samples of communities and use samples from the metacommunities in our model selection framework.
 
-In order to acess main criticisms of our framework, we look into four scenarios:
+In order to access main criticisms of our framework, we look into four scenarios:
 
 * Deterministic community with right traits from Poisson sample
 * Deterministic community with wrong traits from Poisson sample
@@ -58,15 +57,14 @@ library(dplyr)
 library(MASS)
 library(knitr)
 
-set.seed(42) ## uma vez basta
+set.seed(42) 
 ```
 
-First, we generated the metacoomunity data. Code used here is adapted from Sokol's tutorial. We created data from 30 sites across three mountain chains. We simulated abundance values for 20 different species.
+First, we generated the metacommunity data. Code used here is adapted from Sokol's tutorial. We created data from 30 sites across three mountain chains. We simulated abundance values for 20 different species.
 
 For both deterministic and stochastic scenarios, we simulated 10 different metacommunities until timestep 100 and and took mean values from the 100th last timestep.
 
 ```{r generate data}
-
 ## Number of sites
 Nsites <- 30
 ## Number of regions
@@ -76,7 +74,7 @@ Nspp <- 20
 
 ## Sites attributes ##
 ## Here are the xy-coordinates of sites: 3 regions with 10 sites each
-## Distances between regions is an order of amgnitude distance bewteen sites within regions
+## Distances between regions is an order of magnitude distance bewteen sites within regions
 sites <- expand.grid(x = seq(0,120, length=Nregions), y=seq(1,5, length=Nsites/Nregions))
 sites$x <- jitter(sites$x)
 sites$y <- jitter(sites$y)
@@ -87,7 +85,6 @@ sites$env <- rep(seq(1,5, length=Nsites/Nregions), each=Nregions)
 
 ## Calculate niches for species: optimal values along the enviromental variable
 sp.opt <- runif(Nspp, min = 1, max = 5)
-
 ```
 
 
@@ -109,6 +106,7 @@ simulation_landscape_det <- MCSim::fn.make.landscape(
 ## It seems that in R 3.5 it is necessary to convert the dist mat in this object form dataframe to a matrix
 simulation_landscape_det$dist.mat <-  as.matrix(simulation_landscape_det$dist.mat)
 ```
+
 ##### 1.2.2 Simulating abundances of deterministic communities
 
 ```{r simu det, results="hide", message=FALSE}
@@ -117,15 +115,19 @@ simulation_landscape_det$dist.mat <-  as.matrix(simulation_landscape_det$dist.ma
 
 ## Random values of species abundances 
 m0b <- matrix(rlnorm(Nspp*Nsites), Nsites, Nspp)
+
 ## Splitting species in 3 fractions that are exclusive of each region
 R.ind <- sample(letters[1:Nregions], Nspp, replace=TRUE)
-for(i in letters[1:Nregions])
-    m0b[sites$region=="i",R.ind!="i"] <- 0
+for(i in letters[1:Nregions]) {
+    m0b[sites$region=="i",R.ind!="i"] <- 0 
+    }
+
 ## Calculating Relative abundances
 m0b <- sweep(m0b, 1, apply(m0b,1,sum), FUN="/")
 
 ## Data frames to store simulations
 id <- data.frame(site=rep(1:Nsites, Nspp), sites[,3:4], spp=rep(paste("sp",1:Nspp, sep="."), each=Nsites))
+
 ## To store simulation results
 det.resu <- matrix(NA, nrow=nrow(id), ncol=10)
 
@@ -152,14 +154,11 @@ for(i in 1:10){
 det <- data.frame(id, count=rowMeans(det.resu))
 ```
 
-
 #### 1.3 Stochastic community
 
 ##### 1.3.1 Simulating the landscape
 
-  
 ```{r simu sto, results="hide", message=FALSE}
-
 simulation_landscape_sto <- MCSim::fn.make.landscape(
   site.coords = sites[,1:2],
   Ef = sites$env,
@@ -196,8 +195,6 @@ for(i in 1:10){
 }
 
 sto <- data.frame(id, count=rowMeans(sto.resu))
-
-
 ```
 
 #### 1.4 Taking samples from simulated communities
@@ -255,7 +252,6 @@ Null model | - | species and region independently
 ##### Preparing abundance, trait and environmental data
 
 ```{r selecting comm, results="hide", message=FALSE}
-
 # Binding all data togheter
 data <- data.frame(site=id[,"site"], spp=id[,"spp"], det=det.pois, sto=sto.pois, 
                    sto.nb=sto.nb) 
@@ -326,7 +322,6 @@ m.null <- function(ab, region, spp, family, ...){
       null <- glmer(ab ~ 1 + (1|region) + (1|spp), family=family)
       return(null)
 }
-  
 
 # Neutral model in which variation in species abundances are restricted to sites, representing limited dispersal.
 m.neu <- function(ab, spp, region, family, ...){
@@ -387,14 +382,11 @@ mod.det.rt.BIC <- mod.det.rt.BIC[order(mod.det.rt.BIC[,2]),]
 mod.det.rt.BIC
 
 sem.model.fits(niche.det.rt[[2]])
-
 ```
 
 ##### Deterministic community w/ wrong traits, from poisson sample
 
 ```{r models det wt}
-
-
 niche.det.wt <- m.niche(ab=all.data$det,
                         spp=all.data$spp, 
                         trait=all.data$trait.wr, 
@@ -416,12 +408,9 @@ mod.det.wt.BIC <- mod.det.wt.BIC[order(mod.det.wt.BIC[,2]),]
 mod.det.wt.BIC
 
 sem.model.fits(niche.det.wt[[2]])
-
-
 ```
 
 ##### Stochastic community w/ right traits, from poisson sample
-
 
 ```{r models sto rt}
 ##### Stochastic community w/ right traits, from poisson sample
@@ -496,11 +485,9 @@ mod.stonb.rt.BIC <- BIC(null.stonb.rt, neu.stonb.rt,
 
 mod.stonb.rt.BIC <- mod.stonb.rt.BIC[order(mod.stonb.rt.BIC[,2]),]
 
-
 mod.sto.rt.BIC
 
 sem.model.fits(neu.stonb.rt)
-
 ```
 
 ### 4. Addressing main criticisms of our framework
@@ -508,8 +495,7 @@ sem.model.fits(neu.stonb.rt)
 We now will compare results from model selection of the different scenarios we created. We consider the model with lowest BIC (Bayesian Information Criterion) as the model that best explains the community data. We will depict all best models in terms of their adjusted $R^{2}$. Adjusted $R^{2}$, as they measure the relative importance of fixed and random effects in the model, are used here a proxy of correspondence of community processes to terms in the model. Therefore, conditional $R^{2}$ represents the influence of niche dynamics whereas marginal $R^{2}$ is partitionated into each random term and can represent either niche (in the case of the term (1|spp)) or, more comonly, neutral dynamics (for other terms).  
 
 ```{r r-squared table}
-
-# Function to calculate R-squared for each random effect based on code from Melina Leite :)
+# Function to calculate R-squared for each random effect based on code from Nakagawa & Schielzeth 2013
 # Works only for Poisson GLMMs
 r2.table <- function(model){
 # Function to calculate the null model, model with all random terms 
@@ -546,13 +532,11 @@ r2.tab <- t(as.data.frame(c(conditional = r2t,
 row.names(r2.tab) <- "model"
 return(as.data.frame(r2.tab))
 }
-
 ```
 
 #### 4.1. Are fixed and random effects actually capturing niche and neutral dynamics?
 
 In order to address this question, we compare results of the selected model for deterministic and stochastic communities with right traits, both sampled from poisson distribution.
-
 
 ```{r test 4.1}
 #Calculating R2
@@ -563,7 +547,6 @@ table1 <- bind_rows(r2.det.rt, r2.sto.rt)
 row.names(table1) <- c("Deterministic community w/ right traits", 
                    "Stochastic community w/ right traits")
 kable(table1)
-
 ```
 
 For communities built by known niche dynamics conditional $R^{2}$ value is composed basically by fixed effects, representing niche dynamics. For communities built by known neutral dynamics, conditional $R^{2}$ is built by random effects, specially the effect represented by the term (1|region:spp), which represents of limited dispersal of species within regions.
@@ -580,7 +563,6 @@ table2 <- bind_rows(r2.sto.rt, r2.stonb.rt)
 row.names(table2) <- c("Stochastic community w/ right traits from Poisson", 
                        "Stochastic community w/ right traits from Negative Binomial")
 kable(table2)
-
 ```
 
 
@@ -596,7 +578,6 @@ table3 <- bind_rows(r2.det.rt, r2.det.wt)
 row.names(table3) <- c("Deterministic community w/ right traits", 
                        "Deterministic community w/ wrong traits")
 kable(table3)
-
 ```
 
 Only looking into model selection results, one cannot examine difference between deterministic communities built by uninformative and informative species traits. However, by examining $R^{2}$ values, one can detect if traits used in the model are actually influencing species abundances. Uninformative traits inflate conditional $R^{2}$ because of the importance of the term (1|spp) and minimizes the influence of the environment. When traits are informative and niche dynamics are preponderant, $R^{2}$ for fixed effects should be particularly high. 
