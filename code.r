@@ -17,6 +17,7 @@ library(optimx)
 library(xtable)
 library(piecewiseSEM)
 library(dplyr)
+source("r2_table.R")
 
 #############################
 # PART 2: loading data ######
@@ -24,6 +25,9 @@ library(dplyr)
 
 fern.data <- read.csv("fern_data_Mortaraetal.csv", header=TRUE)
 head(fern.data)
+
+fern.data$site <- scale(rep(1:30, length(unique(fern.data$species))))
+
 
 #####################################################################
 # PART 3: building models to represent hypothesis ##################
@@ -42,10 +46,12 @@ m1 <- glmer(abundance ~ 1 + (1|mountain) + (1|species) , data=fern.data,
 ###################################
 
 # 2.1 Neutral model with species restricted to mountains 
-m2.1 <- glmer(abundance ~ 1 + (1|mountain:species) + (1|species), data=fern.data, family="poisson")
+m2.1 <- glmer(abundance ~ 1 + (1|species:mountain) + (1|species), data=fern.data, family="poisson")
 
 # 2.2 Neutral model with species restricted to mountains and sampling sites
-m2.2 <- glmer(abundance ~ 1 + (1|mountain:species)+ (1|alt_std:species) + (1|species), data=fern.data, family="poisson") 
+m2.2 <- glmer(abundance ~ 1 + (1|species:mountain) + (1|species:site)+ (1|species),
+              data=fern.data, family="poisson",
+              nAGQ=1, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=500000))) 
 
 ########################
 # 3. Niche hypothesis #
@@ -114,20 +120,20 @@ m3.2.4 <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
 ##################################################################
 
 # 4.1.1 Ecological Strategy defined as combination of laminar tickness and indumentum, drift among species sharing the same ES, regional limited dispersal
-m4.1.1 <- glmer(abundance ~ thickness + indumentum + (1|species) + (1|mountain:species), data=fern.data, family="poisson")
+m4.1.1 <- glmer(abundance ~ thickness + indumentum + (1|species) + (1|species:mountain), data=fern.data, family="poisson")
 
 # 4.1.2 Ecological Strategy defined as a combination of indumendum and life form, drift among species sharing the same ES, regional limited dispersal
-m4.1.2 <- glmer(abundance ~ indumentum  + life_form + (1|species)+ (1|mountain:species),
+m4.1.2 <- glmer(abundance ~ indumentum  + life_form + (1|species)+ (1|species:mountain),
             data=fern.data, family="poisson")
 
 # 4.1.3. Ecological Strategy defined as a combination of laminar tickness and life form, drift among species sharing the same ES, regional limited dispersal
 m4.1.3 <- glmer(abundance ~ thickness 
-            +  life_form + (1|species) + (1|mountain:species),
+            +  life_form + (1|species) + (1|species:mountain),
             data=fern.data, family="poisson")
 
 # 4.1.4 Ecological Strategy defined by all the three traits: laminar thickness, life form and indumentum, drift among species sharing the same ES, regional limited dispersal
 m4.1.4 <- glmer(abundance ~ thickness + indumentum
-            +  life_form + (1|species) + (1|mountain:species),
+            +  life_form + (1|species) + (1|species:mountain),
             data=fern.data, family="poisson")
 
 ##########################################################################
@@ -136,25 +142,27 @@ m4.1.4 <- glmer(abundance ~ thickness + indumentum
 
 # 4.2.1 Ecological Strategy defined as combination of laminar tickness and indumentum, drift among species sharing the same ES, local and regional limited dispersal
 m4.2.1 <- glmer(abundance ~ thickness + indumentum + (1|species) +
-                    (1|mountain:species) + (1|alt_std:species),
-              data=fern.data, family="poisson")
+                    (1|species:mountain) + (1|species:site),
+                data=fern.data, family="poisson",
+            control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 # 4.2.2 Ecological Strategy defined as a combination of indumendum and life form, drift among species sharing the same ES, local and regional limited dispersal
 m4.2.2 <- glmer(abundance ~ indumentum  + life_form + (1|species)+
-                    (1|mountain:species) + (1|alt_std:species),
-            data=fern.data, family="poisson")
+                    (1|species:mountain) + (1|species:site),
+                data=fern.data, family="poisson",
+                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 # 4.2.3. Ecological Strategy defined as a combination of laminar tickness and life form, drift among species sharing the same ES, local and regional limited dispersal
 m4.2.3 <- glmer(abundance ~ thickness 
             +  life_form + (1|species) +
-            (1|mountain:species) + (1|alt_std:species),
-            data=fern.data, family="poisson")
+            (1|species:mountain) + (1|species:site),
+            data=fern.data, family="poisson",  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 # 4.2.4 Ecological Strategy defined by all the three traits: laminar thickness, life form and indumentum, drift among species sharing the same ES, local and regional limited dispersal
 m4.2.4 <- glmer(abundance ~ thickness + indumentum
             +  life_form + (1|species) +
-            (1|mountain:species) + (1|alt_std:species),
-            data=fern.data, family="poisson")
+            (1|species:mountain) + (1|species:site),
+            data=fern.data, family="poisson",  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 
 ################################################################################
@@ -164,33 +172,32 @@ m4.2.4 <- glmer(abundance ~ thickness + indumentum
 # 4.3.1 Ecological Strategy defined as combination of laminar tickness and indumentum interacting with altitude, drift among species sharing the same ES, regional limited dispersal
 m4.3.1 <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
               + indumentum*alt_std + indumentum*I(alt_std^2)
-             + (1|species) + (1|mountain:species),
+             + (1|species) + (1|species:mountain),
               data=fern.data, family="poisson",
-             nAGQ=1, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=500000)))
+             nAGQ=1, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 # 4.3.2 Ecological Strategy defined as a combination of indumendum and life form interacting with altitude, drift among species sharing the same ES, regional limited dispersal
 m4.3.2 <- glmer(abundance ~ indumentum*alt_std + indumentum*I(alt_std^2)
               + life_form*alt_std + life_form*I(alt_std^2)
-             + (1|species) + (1|mountain:species),
+             + (1|species) + (1|species:mountain),
             data=fern.data, family="poisson",
-            nAGQ=1, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=500000)))
+            nAGQ=1, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
             
 
 # 4.3.3. Ecological Strategy defined as a combination of laminar tickness and life form interacting with altitude, drift among species sharing the same ES, regional limited dispersal
 m4.3.3 <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2) 
             +  life_form*alt_std + life_form*I(alt_std^2)
-           + (1|species) + (1|mountain:species),
+           + (1|species) + (1|species:mountain),
             data=fern.data, family="poisson",
-           nAGQ=1, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=500000)))
+           nAGQ=1, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 # 4.3.4 Ecological Strategy defined by all the three traits: laminar thickness, life form and indumentum interacting with altitude, drift among species sharing the same ES, regional limited dispersal
 m4.3.4 <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
               + indumentum*alt_std + indumentum*I(alt_std^2)
             +  life_form*alt_std + life_form*I(alt_std^2)
-           + (1|species) + (1|mountain:species),
+           + (1|species) + (1|species:mountain),
             data=fern.data, family="poisson",
-           control=glmerControl(optimizer="optimx",
-                optCtrl=list(method="nlminb")))
+           control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
                                         #nAGQ=1, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=500000)),
            #control=glmerControl(optimizer="optimx",
@@ -204,37 +211,31 @@ m4.3.4 <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
 # 4.4.1 Ecological Strategy defined as combination of laminar tickness and indumentum interacting with altitude, drift among species sharing the same ES, local and regional limited dispersal
 m4.4.1 <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
               + indumentum*alt_std + indumentum*I(alt_std^2)
-             + (1|species) + (1|mountain:species) + (1|alt_std:species),
+             + (1|species) + (1|species:mountain) + (1|species:site),
               data=fern.data, family="poisson",
-             control=glmerControl(optimizer="optimx",
-                optCtrl=list(method="nlminb")))
+             control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 # 4.4.2 Ecological Strategy defined as a combination of indumendum and life form interacting with altitude, drift among species sharing the same ES, local and regional limited dispersal
 m4.4.2 <- glmer(abundance ~ indumentum*alt_std + indumentum*I(alt_std^2)
               + life_form*alt_std + life_form*I(alt_std^2)
-             + (1|species) + (1|mountain:species) + (1|alt_std:species),
+             + (1|species) + (1|species:mountain) + (1|species:site),
             data=fern.data, family="poisson",
-            control=glmerControl(optimizer="optimx",
-                optCtrl=list(method="nlminb")))
+            control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 # 4.4.3. Ecological Strategy defined as a combination of laminar tickness and life form interacting with altitude, drift among species sharing the same ES, local and regional limited dispersal
 m4.4.3 <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2) 
             +  life_form*alt_std + life_form*I(alt_std^2)
-           + (1|species) + (1|mountain:species) + (1|alt_std:species),
+            + (1|species:mountain) + (1|species:site) + (1|species),
             data=fern.data, family="poisson",
-           control=glmerControl(optimizer="optimx",
-                optCtrl=list(method="nlminb")))
+           control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 # 4.4.4 Ecological Strategy defined by all the three traits: laminar thickness, life form and indumentum interacting with altitude, drift among species sharing the same ES, local and regional limited dispersal
 m4.4.4 <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
               + indumentum*alt_std + indumentum*I(alt_std^2)
             +  life_form*alt_std + life_form*I(alt_std^2)
-           + (1|species) + (1|mountain:species) + (1|alt_std:species),
-            data=fern.data, family="poisson",
-           control=glmerControl(optimizer="optimx",
-                optCtrl=list(method="nlminb")))
-
-#            nAGQ=1)#, control=glmerControl(optimizer="bobyqa"))
+           + (1|species) + (1|species:mountain) + (1|species:site),
+           data=fern.data, family="poisson",
+           control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 
 #####################################################################
@@ -246,7 +247,7 @@ aic.tab <- AICtab(m1, # Null
        m3.1.1, m3.1.2, m3.1.3, m3.1.4,
        m3.2.1, m3.2.2, m3.2.3, m3.2.4, # Niche
        m4.1.1, m4.1.2, m4.1.3, m4.1.4, 
-       m4.2.1, m4.2.2, m4.2.3, m4.2.4, # Emergent Groups
+       m4.2.1, m4.2.2, m4.2.3, m4.2.4, # EG, regional limited dispersal
        m4.3.1, m4.3.2, m4.3.3, m4.3.4,
        m4.4.1, m4.4.2, m4.4.3, m4.4.4, # EG, drift, local and regional limited dispersal
        weights=TRUE, base=TRUE, sort=FALSE) 
@@ -262,9 +263,17 @@ m.list <- list(m1, # Null
        m4.2.1, m4.2.2, m4.2.3, m4.2.4, # Emergent Groups
        m4.3.1, m4.3.2, m4.3.3, m4.3.4,
        m4.4.1, m4.4.2, m4.4.3, m4.4.4) # EG, drift, local and regional limited dispersal
-      
 
 aic.tab <- print(aic.tab, min.weight=0.001)
+
+r2.list <- sapply(m.list, r2.table)
+
+r2.all <- bind_rows(r2.list)
+
+row.names(r2.all) <- row.names(aic.tab)
+
+write.table(r2.all[order(r2.all[,1], decreasing=TRUE),], "tabela_r2.csv", sep=",")
+
 
 print(xtable(aic.tab, caption="Model selection confronting idiosyncratic, ecological drift, niche, emergent groups,
 and emergent groups with ecological drift models for fern species abundances on local communities."), caption.placement="top", label="aic")
@@ -328,49 +337,6 @@ r2
 #marginal 0.03
 #conditional 0.86
 
-r2.table <- function(model){
-# Function to calculate the null model, model with all random terms 
-best.null <- function(model) {
-parens <- function(x) paste0("(",x,")")
-onlyBars <- function(form) reformulate(sapply(findbars(form),
-                                              function(x)  parens(deparse(x))),
-                                              response=".")
-onlyBars(formula(model))
-best.null <- update(model,onlyBars(formula(model)))
-return(best.null)
-}
-# Calculates null model
-m0 <- best.null(model)
-# Variance for fixed effects
-VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
-# Denominator for R2GLMM formula works for Poisson distribution only
-deno <- (VarF + sum(unlist(VarCorr(model))) +  
-              log(1 + 1/exp(as.numeric(fixef(m0)))))
-# R2GLMM(m) - marginal R2GLMM 
-r2f <- VarF/deno
-# R2GLMM(c) - conditional R2GLMM for full model
-r2t <- (VarF + sum(unlist(VarCorr(model))))/deno
-# R2 random effects only
-r2rand <- r2t-r2f
-## R2 Residuals
-r2res <- 1-r2t
-## Partitioning R2 GLMM for each random effect
-r2rand.part <- unlist(VarCorr(model))/deno
-r2.tab <- t(as.data.frame(c(conditional = r2t,
-      fixed = r2f,
-      random = r2rand,
-      r2rand.part)))
-row.names(r2.tab) <- "model"
-return(as.data.frame(r2.tab))
-}
-
-
-r2.list <- sapply(m.list, r2.table)
-
-r2.all <- bind_rows(r2.list)
-row.names(r2.all) <- row.names(aic.tab)
-
-write.table(r2.all[order(r2.all[,1], decreasing=TRUE),], "tabela_r2.csv", sep=",")
 
 save.image("Mortaraetal.RData")
 
