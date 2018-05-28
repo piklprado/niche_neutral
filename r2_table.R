@@ -15,9 +15,10 @@ return(best.null)
 m0 <- best.null(model)
 # Variance for fixed effects
 VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
-# Denominator for R2GLMM formula works for Poisson distribution only
-deno <- (VarF + sum(unlist(VarCorr(model))) +  
-              log(1 + 1/exp(as.numeric(fixef(m0)))))
+    ## Denominator for R2GLMM formula works for Poisson distribution only
+    s2d <- log(1 + 1/exp(as.numeric(fixef(m0)))) ## Este é termo sigma^2_d de Nakagawa et al. 2017 Interface. Mas veja eqs 5.7-5.8 para correcao.
+    sigma.tau <- sum(unlist(VarCorr(model)) ## de acordo eq 5.8 Nakagawa et al. 2017
+deno <- VarF + sigma.tau +  s2d 
 # R2GLMM(m) - marginal R2GLMM 
 r2f <- VarF/deno
 # R2GLMM(c) - conditional R2GLMM for full model
