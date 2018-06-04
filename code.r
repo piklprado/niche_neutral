@@ -38,37 +38,69 @@ fern.data$site <- scale(rep(1:30, length(unique(fern.data$species))))
 m.full <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
               #+ indumentum*alt_std + indumentum*I(alt_std^2)
             +  life_form*alt_std + life_form*I(alt_std^2)
-           + (1|species) + (1|species:mountain) + (1|species:site) + (1 + alt_std+I(alt_std^2)|species),
+           + (1|species) + (1|species:mountain) + (1|species:site) + (1|site),
            data=fern.data, family="poisson",
            control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
-m.neutral <- glmer(abundance ~ (1|species) + (1|species:mountain) + (1|species:site) + (1 + alt_std|species),
+head(fern.data)
+
+unique(fern.data$life_form)
+
+fern.data$ep <- ifelse(fern.data$life_form!='ep', 'non.ep', 'ep') 
+
+head(fern.data)
+unique(fern.data$ep)
+
+m.full.lf <- glmer(abundance ~ #thickness*alt_std + thickness*I(alt_std^2)
+              #+ indumentum*alt_std + indumentum*I(alt_std^2)
+            ep*alt_std + ep*I(alt_std^2)
+           + (1|species) + (1|species:mountain) + (1|species:site) + (1|site),
+           data=fern.data, family="poisson",
+           control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
+
+
+m.full2 <- glmer(abundance ~ alt_std + I(alt_std^2)
+           + (1|species) + (1|species:mountain) + (1|species:site) + (1+alt_std|species),
+           data=fern.data, family="poisson",
+           control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
+ 
+
+m.neutral <- glmer(abundance ~ (1|species) + (1|species:mountain) + (1|species:site) + (1 |site),
            data=fern.data, family="poisson",
            control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
 m.niche <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
               #+ indumentum*alt_std + indumentum*I(alt_std^2)
             +  life_form*alt_std + life_form*I(alt_std^2)
-           + (1|species) + (1 + alt_std|species),
+           + (1|species) + (1|site),
            data=fern.data, family="poisson",
            control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
+
+m.env <- glmer(abundance ~ alt_std + I(alt_std^2)
+           + (1|species) + (1|site) + (1+alt_std|species),
+           data=fern.data, family="poisson",
+           control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
+
 
 m.null <- glmer(abundance ~ 1 +
-           (1|species) + (1|mountain) + (1|site) + (1 + alt_std|species),
+           (1|species) + (1|mountain) + (1|site),
            data=fern.data, family="poisson",
            control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
-m.list <- list(m.full, m.neutral, m.niche, m.null)
+m.list <- list(m.full, m.neutral, m.niche, m.null, m.full2, m.env, m.full.lf)
 
 bic.tab <- sapply(m.list, BIC)
-mod.names <- c("niche & neutral", "neutral", "niche", "null") 
+mod.names <- c("niche & neutral", "neutral", "niche", "null", "env & neutral", "env", "lifeform & neutral") 
 names(bic.tab) <- mod.names
 
-bic.tab
+sort(bic.tab)
+
+r2.table(m.neutral)
 
 r2.tab <- sapply(m.list, r2.table)
 
 r2.tab <- bind_rows(r2.tab)
+
 
 row.names(r2.tab) <- mod.names
 
