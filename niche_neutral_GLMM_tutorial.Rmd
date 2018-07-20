@@ -370,54 +370,80 @@ First, we create simple functions to perform model selection. Although the logic
 
 ## 1. Hypothesis of solely niche dynamics
 # Niche dynamics models in which abundances are a function of species ecological strategies (traits) or ecological strategies interacting with the environmental gradient (tradeoff model). 
-m.niche <- function(ab, spp, trait, grad, family, ...){
-      es <- glmer(ab ~ trait + (1|spp), family=family, 
+m.niche <- function(ab, spp, trait, grad, family, site, ...){
+      es <- glmer(ab ~ trait + I(grad^2) + (1|spp) + (1|site), family=family, 
                control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-      es.tradeoff <- glmer(ab ~ trait + I(grad^2) + trait:grad + (1|spp),
+      es.tradeoff <- glmer(ab ~ trait + I(grad^2) + trait:grad + (1|spp) + (1|site),
+                         family=family, 
+                         control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5)))
+      es <- glmer(ab ~ trait + I(grad^2) + (1|spp) + (1|site), family=family, 
+                  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+      ## Models to check wrong traits
+      es.wt <- glmer(ab ~ grad + I(grad^2) + (1|spp) + (1|site), family=family, 
+               control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+      es.tradeoff.wt <- glmer(ab ~ grad + I(grad^2) + (grad|spp) + (1|spp) + (1|site),
                          family=family, 
                     control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5)))
-      return(list(es=es, es.tradeoff=es.tradeoff))
+      return(list(es=es, es.tradeoff=es.tradeoff, es.wt=es.wt, es.tradeoff.wt=es.tradeoff.wt))
 }
 
 ## 2. Hypothesis of solely neutral dynamics 
 # Neutral model in which variation in species abundances are restricted to sites and regions, representing limited dispersal at local and regional scales, respectively.
 m.neu <- function(ab, spp, region, site, family, ...){
-    drift <- glmer(ab ~ 1 + (1|spp:region) + (1|spp), family=family, 
+    drift <- glmer(ab ~ 1 + (1|spp:region) + (1|spp) + (1|site), family=family, 
                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-#    drift2 <- glmer(ab ~ 1 + (1|spp:region) + (1|spp:site) + (1|spp), family=family, 
-                #   control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-    return(drift)
+    ## site-level dispersal limitation
+    drift2 <- glmer(ab ~ 1 + (1|spp:region) + (1|spp:site) + (1|spp) + (1:site), family=family, 
+                   control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+    return(list(drift=drift, drift2=drift2))
 }
 
 ## 3. Hypothesis of niche and neutral dynamics
 # Models in which niche and neutral dynamics models are combined = niche dynamic models + random term for limited dispersal
-m.nineu <- function(ab, trait, grad, spp, region, family, ...){
-    es.drift <- glmer(ab ~ trait + (1|spp:region) + (1|spp), family=family, 
+m.nineu <- function(ab, trait, grad, spp, region, site, family, ...){
+    es.drift <- glmer(ab ~ trait + I(grad^2) + (1|spp:region) + (1|spp) + (1|site), family=family, 
                       nAGQ=1, control=glmerControl(optimizer="bobyqa", 
                                               optCtrl=list(maxfun=2e5)))
     es.tradeoff.drift <- glmer(ab ~ trait + I(grad^2) + trait:grad + 
-                                  (1|spp:region) + (1|spp), family=family, 
+                                  (1|spp:region) + (1|spp) + (1|site), family=family, 
                                 control=glmerControl(optimizer="bobyqa", 
                                                      optCtrl=list(maxfun=2e5)))
- #   es.drift2 <- glmer(ab ~ trait + (1|spp:region) + (1|spp:site) 
-  #                    + (1|spp), family=family, 
-   #                   nAGQ=1, control=glmerControl(optimizer="bobyqa", 
-    #                                          optCtrl=list(maxfun=5e5)))
-    #es.tradeoff.drift2 <- glmer(ab ~ trait + I(grad^2) + trait:grad + 
-     #                             (1|spp:region) + (1|spp:site) + 
-      #                            (1|spp), family=family, 
-       #                         control=glmerControl(optimizer="bobyqa", 
-        #                                             optCtrl=list(maxfun=5e5)))
-       return(list(es.drift=es.drift, es.tradeoff.drift=es.tradeoff.drift))#, 
-         #          es.drift=es.drift2, es.tradeoff.drift2=es.tradeoff.drift)) 
+    ## With site-level diespersion limitation
+    es.drift.2 <- glmer(ab ~ trait + I(grad^2) + (1|spp:region) + (1|spp:site) + (1|spp) + (1|site), family=family, 
+                      nAGQ=1, control=glmerControl(optimizer="bobyqa", 
+                                              optCtrl=list(maxfun=2e5)))
+    es.tradeoff.drift.2 <- glmer(ab ~ trait + I(grad^2) + trait:grad + 
+                                  (1|spp:region) + + (1|spp:site) + (1|spp) + (1|site), family=family, 
+                                control=glmerControl(optimizer="bobyqa", 
+                                                     optCtrl=list(maxfun=2e5)))
+    ## wrong traits
+    es.drift.wt <- glmer(ab ~ grad + I(grad^2) + (grad|spp) + (1|spp:region) + (1|spp) + (1|site), family=family, 
+                      nAGQ=1, control=glmerControl(optimizer="bobyqa", 
+                                              optCtrl=list(maxfun=2e5)))
+    es.tradeoff.drift.wt <- glmer(ab ~ grad + I(grad^2) + (grad|spp) + 
+                                  (1|spp:region) + (1|spp) + (1|site), family=family, 
+                                control=glmerControl(optimizer="bobyqa", 
+                                                     optCtrl=list(maxfun=2e5)))
+    ## Site-level dispersal limitation
+    es.drift.wt.2 <- glmer(ab ~ grad + I(grad^2) + (grad|spp) + (1|spp:region) + (1|spp:site) + (1|spp) + (1|site), family=family, 
+                      nAGQ=1, control=glmerControl(optimizer="bobyqa", 
+                                              optCtrl=list(maxfun=2e5)))
+    es.tradeoff.drift.wt.2 <- glmer(ab ~ grad + I(grad^2) + (grad|spp) + 
+                                  (1|spp:region) + (1|spp:site) + (1|spp) + (1|site), family=family, 
+                                control=glmerControl(optimizer="bobyqa", 
+    return(list(es.drift=es.drift, es.tradeoff.drift=es.tradeoff.drift,
+                es.drift.2=es.drift.2, es.tradeoff.drift.2=es.tradeoff.drift.2,
+                es.drift.wt=es.drift.wt, es.tradeoff.drift.wt=es.tradeoff.drift.wt,
+                es.drift.wt.2=es.drift.wt.2, es.tradeoff.drift.wt.2=es.tradeoff.drift.wt.2
+                )) 
 }
 
 ## 4. Null hypothesis
-# Null model in which species and sites are independent random intercepts
-m.null <- function(ab, region, spp, family, ...){
-      null <- glmer(ab ~ 1 + (1|region) + (1|spp), family=family,
+## Null model in which species and sites are independent random intercepts
+m.null <- function(ab, region, site, spp, family){
+      mnull <- glmer(ab ~ 1 + (1|region) + (1|spp) + (1|site), family=family,
                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e5)))
-      return(null)
+      return(list(null=mnull))
 }
 ```
 
@@ -431,12 +457,13 @@ niche.det.rt <- m.niche(ab=all.data$det,
                         spp=all.data$spp, 
                         trait=all.data$trait, 
                         grad=all.data$grad,
+                        site=all.data$site,
                        family = "poisson") 
 # Solely neutral dynamics
 neu.det <- m.neu(ab=all.data$det, 
                       spp=all.data$spp, 
                       region=all.data$region, 
-                      site=all.data$grad,
+                      site=all.data$site, ## estava site=all.data$grad. Erro?
                       "poisson")
 
 # Niche and neutral dynamics
@@ -445,16 +472,26 @@ nineu.det.rt <- m.nineu(ab=all.data$det,
                         region=all.data$region,
                         trait=all.data$trait, 
                         grad=all.data$grad, 
-                        site=all.data$grad,
+                        site=all.data$site,
                         "poisson")
 # Null hypothesis
 null.det <- m.null(ab=all.data$det, 
-                      spp=all.data$spp, 
-                      region=all.data$region, 
-                      "poisson")
-# BIC for each model
+                   spp=all.data$spp, 
+                   region=all.data$region,
+                   site=all.data$site,
+                   "poisson")
+## BIC for each model
+lista1 <- c(null.det,neu.det, niche.det.rt, nineu.det.rt)
+BICtab( lista1, nobs=nrow(all.data), base=TRUE)
+
+mod.det.rt.BIC <- c(
+    sapply(null.det, BIC),
+    sapply(neu.det, BIC),
+    sapply(niche.det.rt, BIC),
+    sapply(nineu.det.rt, BIC)
+    )
 mod.det.rt.BIC <- BIC(null.det, 
-                      neu.det[[1]], neu.det[[2]], 
+                      neu.det[[1]], #neu.det[[2]], 
                    niche.det.rt[[1]], niche.det.rt[[2]],
                    nineu.det.rt[[1]], nineu.det.rt[[2]], 
                    nineu.det.rt[[3]], nineu.det.rt[[4]]) 
@@ -644,10 +681,10 @@ row.names(table2) <- c("Stochastic community w/ right traits from Poisson",
 kable(table2)
 ```
 
-
 For stochastic communities sampled from both Poisson and Negative Binomial distributions, conditional $R^{2}$ are basically the same, indicating that over-dispersion in data is being well captured by Poisson GLMM's with no prejudice on the interpretation of which processes are affecting species abundances. For stochastic communities, the random term (1|spp) should be particularly small.  
 
 Second, in order to examine how random effects reflect uninformed traits, we compare the results of the selected model from deterministic communities with right and wrong traits. 
+
 ```{r test 4.2 right-wrong}
 #Calculating R2
 # r2.det.rt

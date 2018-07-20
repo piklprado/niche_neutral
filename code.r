@@ -17,6 +17,7 @@ library(lme4)
 library(xtable)
 library(piecewiseSEM)
 library(dplyr)
+library(ggplot2)
 source("r2_table.R")
 
 #############################
@@ -25,8 +26,10 @@ source("r2_table.R")
 
 fern.data <- read.csv("fern_data_Mortaraetal.csv", header=TRUE)
 head(fern.data)
-
-fern.data$site <- scale(rep(1:30, length(unique(fern.data$species))))
+tail(fern.data)
+fern.data <- na.omit(fern.data) # tem 60 NA's de indumento e espessura de folha. É isto mesmo?
+#fern.data$site <- scale(rep(1:30, length(unique(fern.data$species)))) ## troquei por um fator
+fern.data$site <- factor(rep(1:30, length(unique(fern.data$species))))
 
 
 #####################################################################
@@ -111,25 +114,25 @@ r2.tab
 ####################################################################
 
 # First, we create a data frame with all combination of sites, species and traits 
-comb.table <- data.frame(expand.grid(mountain=levels(fern.data$mountain),
-                                     alt_std=unique(fern.data$alt_std),
-                                     site=unique(fern.data$site),
-                                     species=unique(fern.data$species)),
-                         life_form=fern.data$life_form,
-                         thickness=fern.data$thickness,
-                         indumentum=fern.data$indumentum)
+comb.table <- expand.grid(mountain=levels(fern.data$mountain),
+    alt_std=unique(fern.data$alt_std),
+    site=unique(fern.data$site),
+    species=unique(fern.data$species),
+    life_form=levels(fern.data$life_form),
+    thickness=levels(fern.data$thickness)#, indumentum=levels(fern.data$indumentum))
+    ) 
 
 comb.table <- na.omit(comb.table)
 
 # Second, we use the function predict to create a data frame of predicted values for all possible combinations based on the best model m5.4.3
-pred.values <- predict(m.full, re.form=NULL, newdata=comb.table,
-                       type='response')
+pred.values <- predict(m.full, newdata=com.table,  re.form=NULL, type='link')
+
 
 # Third we calculate mean predicted values and standard error for each altitude 
 
 ## Predicted mean values
 pred.table <- aggregate(pred.values, list(altitude=comb.table$alt_std, thickness=comb.table$thickness,
-                                          indumentum=comb.table$indumentum,
+                                          #indumentum=comb.table$indumentum,
                                              life_form=comb.table$life_form), mean)
 
 names(pred.table)[5] <- "mean"
@@ -139,7 +142,8 @@ names(pred.table)[5] <- "mean"
 pred.table$se <- aggregate(pred.values, by=list(altitude=comb.table$alt_std, thickness=comb.table$thickness,
                                                 indumentum=comb.table$indumentum,
                                              life_form=comb.table$life_form),
-                            function(x)sd(x)/sqrt(length(x)))$x
+                           function(x)sd(x)/sqrt(length(x)))$x
+
 
 head(pred.table)
 
@@ -161,6 +165,58 @@ obs$se <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std, thi
 
 head(obs)
 names(obs) <- c("Altitude", "thickness", "indumentum", "life_form", "Abundance", "std")
+
+
+################################################################################
+## Acrescimos PI
+## Metodo 1: desvios-padrão dos previstos
+
+# previstos sobre os dados originais (omitindo argumento newdata, usa-se a tabela original de dados)
+pred.values <- predict(m.full, re.form=NULL, type='link')
+# Third we calculate mean predicted values and standard error for each altitude 
+## Predicted mean values
+pred.table <- aggregate(pred.values, list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
+                                             life_form=fern.data$life_form), mean)
+
+## Predicted stardard deviations
+pred.table$sd <- aggregate(pred.values, list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
+                                             life_form=fern.data$life_form), sd)$x
+head(pred.table)
+pred.table$plwr <- pred.table$x - pred.table$sd
+pred.table$pupr <- pred.table$x + pred.table$sd
+
+# Second we create a data frame with observed mean values and its standard error
+obs <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
+                                              life_form=fern.data$life_form), mean)
+## Observed standard deviation
+obs$std <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
+                                              life_form=fern.data$life_form), sd)$x
+head(obs)
+names(obs) <- c("Altitude", "thickness", "life_form", "Abundance", "std")
+
+## Um grafico rapido
+obs %>%
+    mutate(lAb=log(Abundance), lstd=log(std), lwr=lAb-lstd, upr=lAb+lstd) %>%
+    ggplot(aes(Altitude, lAb)) +
+    geom_point() +
+    geom_linerange(aes(ymin=lwr, ymax=upr)) +
+    facet_wrap(~thickness + life_form) +
+    geom_ribbon(aes(x=altitude, y=x, ymin=plwr, ymax=pupr), data=pred.table, alpha=0.5)
+## Algum problema de escala...
+
+################################################################################
+## Metodo 2: com bootMER (muito demorado, desisti)
+
+
+## Function to run at each boostrap simulation
+## library(parallel)
+## f1 <- function(., ...)
+##     predict(. , re.form = NULL, ...)
+## m.full.boot <- bootMer(m.full, f1, nsim=100, parallel="multicore", ncpus=4)
+## save.image()
+## m.full.boot.fix <- bootMer(m.full, f1, nsim=100, use.u=TRUE, parallel="multicore", ncpus=4)
+## save.image()
+
 
 #############################################
 ######### Creating figures ##################
