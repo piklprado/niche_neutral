@@ -18,7 +18,7 @@ library(xtable)
 library(piecewiseSEM)
 library(dplyr)
 library(ggplot2)
-source("r2_table.R")
+library(r2glmm)
 
 #############################
 # PART 2: loading data ######
@@ -92,24 +92,31 @@ m.null <- glmer(abundance ~ 1
 
 ## Model selection
 m.list <- list(m.full, m.neutral, m.niche, m.null, m.full2,
-               m.env, m.full.thickness, m.full.lifeform, m.full.indument)
+               m.env)#, m.full.thickness, m.full.lifeform, m.full.indument)
 mod.names <- c("niche & neutral", "neutral", "niche", "null", "env & neutral",
-               "env", "thickness&neutral", "lifef&neutral", "indument&neutral")
+               "env")#, "thickness&neutral", "lifef&neutral", "indument&neutral")
+
+#m.list <- list(m.full, m.neutral, m.niche, m.null, m.full2,
+#               m.env, m.full.thickness, m.full.lifeform, m.full.indument)
+#mod.names <- c("niche & neutral", "neutral", "niche", "null", "env & neutral",
+#               "env", "thickness&neutral", "lifef&neutral", "indument&neutral")
+
+
 ### AIC
 AICctab(m.list, mnames=mod.names, base=TRUE, weights=TRUE, logLik=TRUE)
 ## BIC
 BICtab(m.list, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
 
 ### tentando calcular o R2
-library(r2glmm)
 ### mensagem de erro que o agrupamento tem que ser > que o N 
-r2beta(m.neutral, method="nsj", partial=TRUE)
+r2.mod <- r2beta(update(m.full2, .~. - (1|species:site), control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6))),
+                 method='nsj', partial=TRUE)
 
 
 
 
 
-#####################################################################
+############################/#########################################
 # PART 4: Calculating predicted values from best model  #############
 ####################################################################
 
