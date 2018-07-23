@@ -18,7 +18,8 @@ library(xtable)
 library(piecewiseSEM)
 library(dplyr)
 library(ggplot2)
-source("r2_table.R")
+library(rptR)
+#source("r2_table.R")
 
 #############################
 # PART 2: loading data ######
@@ -68,7 +69,7 @@ m.full2 <- glmer(abundance ~ alt_std + I(alt_std^2)
                  data=fern.data, family="poisson",
                  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
-m.neutral <- glmer(abundance ~ (1|species) + (1|species:mountain) + (1|species:site) + (1|site),
+m.neutral <- glmer(abundance ~ (1|species) + (1|species:mountain) + (1|species:site) ,#+ (1|site),
                    data=fern.data, family="poisson",
                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
@@ -80,7 +81,7 @@ m.niche <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
                  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 m.env <- glmer(abundance ~ alt_std + I(alt_std^2)
-               + (1|species) + (1|site) + (1+alt_std|species),
+               + (1+alt_std|site) + (1+alt_std|species),
                data=fern.data, family="poisson",
                control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
@@ -100,13 +101,22 @@ AICctab(m.list, mnames=mod.names, base=TRUE, weights=TRUE, logLik=TRUE)
 ## BIC
 BICtab(m.list, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
 
-### tentando calcular o R2
+
+### Pseudo R2 calculations for the selected model
+
+## With r2glmm
 library(r2glmm)
-### mensagem de erro que o agrupamento tem que ser > que o N 
-r2beta(m.neutral, method="nsj", partial=TRUE)
+r2beta(m.full2, method="nsj", partial=TRUE)
 
+## Nakagawa repeatabilities (rptR package)
+m.full2.rptr <- rptPoisson(abundance ~ alt_std + I(alt_std^2) 
+                           + (1|species:mountain) + (1+alt_std|species) + (1+alt_std|site),
+                           grname = c("species|mountain", "alt_std|species", "alt_std|site", "Fixed", "Residual"),
+                           data = fern.data, nboot = 0,
+                           npermut = 0, adjusted = FALSE, parallel=TRUE, ncores = 4)
 
-
+## Nakawa repatabilities (with Melina Leite function, see functions. R)
+## To be done and checked
 
 
 #####################################################################
