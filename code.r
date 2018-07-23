@@ -19,7 +19,7 @@ library(piecewiseSEM)
 library(dplyr)
 library(ggplot2)
 library(rptR)
-#source("r2_table.R")
+source("r2_table.R")
 
 #############################
 # PART 2: loading data ######
@@ -108,16 +108,25 @@ BICtab(m.list, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
 library(r2glmm)
 r2beta(m.full2, method="nsj", partial=TRUE)
 
-## Nakagawa repeatabilities (rptR package)
+## Nakagawa repeatabilities (rptR package, note that observation-level random term shpuld be ommited)
 m.full2.rptr <- rptPoisson(abundance ~ alt_std + I(alt_std^2) 
                            + (1|species:mountain) + (1+alt_std|species) + (1+alt_std|site),
                            grname = c("species|mountain", "alt_std|species", "alt_std|site", "Fixed", "Residual"),
                            data = fern.data, nboot = 0,
                            npermut = 0, adjusted = FALSE, parallel=TRUE, ncores = 4)
+## Returns an error:
+## Error in rptPoisson(abundance ~ alt_std + I(alt_std^2) + (1 | species:mountain) +  : 
+##   Fitting the same grouping factor in more than one random 
+##                       effect term is not possible at the moment
+## Além disso: Warning messages:
+## 1: In (function (fn, par, lower = rep.int(-Inf, n), upper = rep.int(Inf,  :
+##   failure to converge in 10000 evaluations
+## 2: In checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+##   Model failed to converge with max|grad| = 0.24199 (tol = 0.001, component 1)
 
 ## Nakawa repatabilities (with Melina Leite function, see functions. R)
-## To be done and checked
-
+## Might be simple as below, but some weird results,to be checked with Melina
+r2.table(m.full2)
 
 #####################################################################
 # PART 4: Calculating predicted values from best model  #############
