@@ -11,14 +11,16 @@
 ############################
 
 # required packages
-library(bbmle)
 library(lme4)
+library(bbmle)
+library(sads)
 #library(optimx)
 library(xtable)
 library(piecewiseSEM)
 library(dplyr)
+##library(tidyr)
 library(ggplot2)
-library(rptR)
+##library(rptR)
 source("r2_table.R")
 library(r2glmm)
 
@@ -139,10 +141,32 @@ m.full2.rptr <- rptPoisson(abundance ~ alt_std + I(alt_std^2)
 r2.table(m.full2)
 
 ############################/#########################################
-# PART 4: Calculating predicted values from best model  #############
+# PART 4: Calculating prediction intervals from best model  #############
 ####################################################################
+## Observed mean values, standard deviations and standard errors
+obs <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std,
+                                              thickness=fern.data$thickness,
+                                              ##indumentum=fern.data$indumentum,
+                                              life_form=fern.data$life_form), mean)
+## Standard deviation
+obs$sd <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std,
+                                                 thickness=fern.data$thickness,
+                                                 ##indumentum=fern.data$indumentum,
+                                                 life_form=fern.data$life_form), sd)$x
+## Observed standard error
+obs$se <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std,
+                                                 thickness=fern.data$thickness,
+                                                 ##indumentum=fern.data$indumentum,
+                                                 life_form=fern.data$life_form),
+                            function(x)sd(x)/sqrt(length(x)))$x
 
-# First, we create a data frame with all combination of sites, species and traits 
+head(obs)
+names(obs) <- c("Altitude", "thickness", "life_form", "Abundance", "sd", "se")
+
+
+
+### 1. Old stuff: standard errors of estimated means (not the same as prediction interval) ##
+## First, we create a data frame with all combination of sites, species and traits 
 comb.table <- expand.grid(mountain=levels(fern.data$mountain),
     alt_std=unique(fern.data$alt_std),
     site=unique(fern.data$site),
@@ -150,39 +174,29 @@ comb.table <- expand.grid(mountain=levels(fern.data$mountain),
     life_form=levels(fern.data$life_form),
     thickness=levels(fern.data$thickness)#, indumentum=levels(fern.data$indumentum))
     ) 
-
 comb.table <- na.omit(comb.table)
-
-# Second, we use the function predict to create a data frame of predicted values for all possible combinations based on the best model m5.4.3
+## Second, we use the function predict to create
+##a data frame of predicted values for all possible combinations based on the best model m5.4.3
 pred.values <- predict(m.full, newdata=com.table,  re.form=NULL, type='link')
-
-
 # Third we calculate mean predicted values and standard error for each altitude 
-
 ## Predicted mean values
 pred.table <- aggregate(pred.values, list(altitude=comb.table$alt_std, thickness=comb.table$thickness,
                                           #indumentum=comb.table$indumentum,
                                              life_form=comb.table$life_form), mean)
-
 names(pred.table)[5] <- "mean"
-
-
 ## Predicted stardard error
 pred.table$se <- aggregate(pred.values, by=list(altitude=comb.table$alt_std, thickness=comb.table$thickness,
                                                 indumentum=comb.table$indumentum,
                                              life_form=comb.table$life_form),
                            function(x)sd(x)/sqrt(length(x)))$x
-
-
 head(pred.table)
-
 # Finally, we calculate the upper and lower confidence interval based on t distribution 
 ## Confidence Interval (mean +- standard error * t(pdf)
 t.prev <- pt(pred.table$mean, df=(nrow(pred.table)-1))
 pred.table$lower <- (pred.table$mean - pred.table$se)*t.prev
 pred.table$upper <- (pred.table$mean + pred.table$se)*t.prev
 
-# Second we create a data frame with observed mean values and its standard error
+##To compare with data  we create a data frame with observed mean values and its standard error
 obs <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
                                               indumentum=fern.data$indumentum,
                                               life_form=fern.data$life_form), mean)
@@ -196,17 +210,20 @@ head(obs)
 names(obs) <- c("Altitude", "thickness", "indumentum", "life_form", "Abundance", "std")
 
 
+
 ################################################################################
 ## Acrescimos PI
 ## Metodo 1: desvios-padrão dos previstos
 
 # previstos sobre os dados originais (omitindo argumento newdata, usa-se a tabela original de dados)
-pred.values <- predict(m.full, re.form=NULL, type='link')
+pred.values <- predict(m.full2, re.form=NULL, type='response')
+## Como o modelo tem o single-observation term previstos e observados sao identicos
+plot(pred.values, fern.data$abundance)
+## Entao o resto nao é de muita utilidade
 # Third we calculate mean predicted values and standard error for each altitude 
 ## Predicted mean values
 pred.table <- aggregate(pred.values, list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
                                              life_form=fern.data$life_form), mean)
-
 ## Predicted stardard deviations
 pred.table$sd <- aggregate(pred.values, list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
                                              life_form=fern.data$life_form), sd)$x
@@ -215,37 +232,169 @@ pred.table$plwr <- pred.table$x - pred.table$sd
 pred.table$pupr <- pred.table$x + pred.table$sd
 
 # Second we create a data frame with observed mean values and its standard error
-obs <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
-                                              life_form=fern.data$life_form), mean)
+obs <- aggregate(log(fern.data$abundance+1/30), by=list(altitude=fern.data$alt_std,
+                                                       thickness=fern.data$thickness,
+                                                       life_form=fern.data$life_form), mean)
 ## Observed standard deviation
-obs$std <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
-                                              life_form=fern.data$life_form), sd)$x
+obs$std <- aggregate(log(fern.data$abundance+1/30), by=list(altitude=fern.data$alt_std,
+                                                           thickness=fern.data$thickness,
+                                                           life_form=fern.data$life_form), sd)$x
 head(obs)
 names(obs) <- c("Altitude", "thickness", "life_form", "Abundance", "std")
 
 ## Um grafico rapido
 obs %>%
-    mutate(lAb=log(Abundance), lstd=log(std), lwr=lAb-lstd, upr=lAb+lstd) %>%
-    ggplot(aes(Altitude, lAb)) +
+    mutate(lwr=Abundance-std, upr=Abundance+std) %>%
+    ggplot(aes(Altitude, Abundance)) +
     geom_point() +
     geom_linerange(aes(ymin=lwr, ymax=upr)) +
     facet_wrap(~thickness + life_form) +
     geom_ribbon(aes(x=altitude, y=x, ymin=plwr, ymax=pupr), data=pred.table, alpha=0.5)
-## Algum problema de escala...
+
 
 ################################################################################
 ## Metodo 2: com bootMER (muito demorado, desisti)
-
-
 ## Function to run at each boostrap simulation
 ## library(parallel)
-## f1 <- function(., ...)
+##f1 <- function(., ...)
 ##     predict(. , re.form = NULL, ...)
-## m.full.boot <- bootMer(m.full, f1, nsim=100, parallel="multicore", ncpus=4)
+##m.full2.boot <- bootMer(m.full2, f1, nsim=10, parallel="multicore", ncpus=4)
 ## save.image()
 ## m.full.boot.fix <- bootMer(m.full, f1, nsim=100, use.u=TRUE, parallel="multicore", ncpus=4)
 ## save.image()
 
+## Metodo 3: com predictInterval do merTools
+## Funciona!
+## Calculating predicted values for each component with merTools::predictInterval
+newdata <- fern.data[,c("species", "mountain", "site", "alt_std")]
+mf2.pi.all <- predictInterval(m.full2, newdata, which="all", type="linear.prediction", level=0.95)
+## Assembles a data.frame with columns for each component
+
+mf2.pi <- cbind(newdata, mf2.pi.all[mf2.pi.all$effect=="combined",2:4])
+names(mf2.pi)[5:7] <- paste(names(mf2.pi)[5:7],"c",sep=".")
+mf2.pi <- cbind(mf2.pi, mf2.pi.all[mf2.pi.all$effect=="fixed",2:4])
+names(mf2.pi)[8:10] <- paste(names(mf2.pi)[8:10],"f",sep=".")
+mf2.pi <- cbind(mf2.pi, mf2.pi.all[mf2.pi.all$effect=="species:site",2:4])
+names(mf2.pi)[11:13] <- paste(names(mf2.pi)[11:13],"ss",sep=".")
+mf2.pi <- cbind(mf2.pi, mf2.pi.all[mf2.pi.all$effect=="species",2:4])
+names(mf2.pi)[14:16] <- paste(names(mf2.pi)[14:16],"s",sep=".")
+mf2.pi <- cbind(fern.data[, c("abundance","life_form","thickness", "altitude")], mf2.pi)
+mf2.pi$sum.s.alt <- with(mf2.pi, fit.f+fit.s)
+
+mf2.pi <- melt(mf2.pi.all, measure.vars=c("fit", "lwr", "upr")) %>%
+    cast(obs~variable+effect)
+
+
+mf2.pi %>%
+    mutate(Ec=exp(fit.c), Ef=exp(fit.f)) %>%
+    group_by(alt_std, life_form, thickness) %>%
+    summarise(m.obs = mean(abundance),
+              l.obs = m.obs-sd(abundance), u.obs = m.obs+sd(abundance), 
+              m.Ec = mean(Ec), l.Ec = quantile(Ec, 0.025), u.Ec = quantile(Ec, 0.975),
+              m.Ef = mean(Ef), l.Ef = quantile(Ef, 0.025), u.Ef = quantile(Ef, 0.975))%>%
+    #mutate(l.obs=ifelse(l.obs==0, 1/30, l.obs), m.obs=ifelse(m.obs==0, 1/30, m.obs)) %>%
+    ggplot(aes(alt_std, m.obs)) +
+    geom_point() +
+    geom_linerange(aes(ymin=l.obs, ymax=u.obs)) +
+    facet_wrap(~thickness + life_form) +
+    geom_ribbon(aes(ymin=l.Ec, ymax=u.Ec), alpha=0.25)+
+    geom_ribbon(aes(ymin=l.Ef, ymax=u.Ef),alpha=0.25) +
+    scale_y_log10()
+
+
+mf2.pi %>%
+    mutate(Ec=exp(fit.c), Ef=exp(fit.f)) %>%
+    group_by(alt_std,mountain) %>%
+    summarise(m.obs = mean(abundance), m.Ec = mean(Ec), m.Ef = mean(Ef),
+              l.obs = quantile(abundance, 0.025), u.obs = quantile(abundance,0.975), 
+              l.Ec = quantile(Ec, 0.025), u.Ec = quantile(Ec, 0.975),
+              l.Ef = quantile(Ef, 0.025), u.Ef = quantile(Ef, 0.975))%>%
+    ggplot(aes(alt_std, m.obs)) +
+    geom_point() +
+    facet_wrap(~mountain) +
+    #geom_linerange(aes(ymin=l.obs, ymax=u.obs)) +
+    geom_ribbon(aes(ymin=l.Ec, ymax=u.Ec), alpha=0.25)+
+    geom_ribbon(aes(ymin=l.Ef, ymax=u.Ef),alpha=0.25) +
+    scale_y_log10()
+
+mf2.pi %>%
+    mutate(Ec=exp(fit.c), Ef=exp(fit.f)) %>%
+    group_by(alt_std,species) %>%
+    summarise(m.obs = mean(abundance), m.Ec = mean(Ec), m.Ef = mean(Ef))%>%
+    group_by(alt_std) %>%
+    summarise(m.spp = mean(m.obs), l.spp = quantile(m.obs, 0.025), u.spp = quantile(m.obs,0.975), 
+              m.Ec2=mean(m.Ec), l.Ec = quantile(m.Ec, 0.025), u.Ec = quantile(m.Ec, 0.975),
+              m.Ef2=mean(m.Ef), l.Ef = quantile(m.Ef, 0.025), u.Ef = quantile(m.Ef, 0.975)) %>%
+    ggplot(aes(alt_std, m.spp)) +
+    geom_point() +
+    geom_line(aes(alt_std, m.Ec2))+
+    #geom_linerange(aes(ymin=l.spp, ymax=u.spp)) +
+    geom_ribbon(aes(ymin=l.Ec, ymax=u.Ec), alpha=0.25)+
+    geom_ribbon(aes(ymin=l.Ef, ymax=u.Ef),alpha=0.25) +
+    scale_y_log10()
+
+
+
+## Plot by species
+mf2.pi %>%
+    mutate(Ec=exp(fit.c), Ef=exp(fit.f), lc=exp(lwr.c), uc = exp(upr.c),
+           lf=exp(lwr.f), uf=exp(upr.f)) %>%
+    group_by(alt_std,species) %>%
+    summarise(m.obs = mean(abundance), l.obs = min(abundance), max(abundance), 
+              m.Ec = mean(Ec), l.Ec = min(lc), u.Ec = max(uc),
+              m.Ef = mean(Ef), l.Ef = min(lf), u.Ef = max(lf))%>%
+    #mutate(l.obs=ifelse(l.obs==0, 1/30, l.obs), m.obs=ifelse(m.obs==0, 1/30, m.obs)) %>%
+    ggplot(aes(alt_std, m.obs)) +
+    geom_point()
+    ##geom_line(aes(group=species)) + scale_y_log10()
+    geom_line() + facet_wrap(~species, scales="free") +
+    theme(
+        strip.background = element_blank(),
+        strip.text.x = element_blank()
+    ) 
+
+################################################################################
+## SADS
+################################################################################
+
+## Decompondo a sads previstas em cada componente
+tmp <- mf2.pi %>%
+    mutate(Ec=exp(fit.c), Ef=exp(fit.f), Ess=exp(fit.ss), Esa=exp(sum.s.alt)) %>%
+    group_by(altitude,species) %>%
+    summarise(m.obs = mean(abundance), m.Ec = mean(Ec), m.Ef = mean(Ef),
+              m.Ess=mean(Ess), m.Esa=mean(Esa)) %>%
+    as.data.frame()
+## Sads observadas e previstas pelos componentes por altitude
+par(mfrow=c(3,4))
+for(i in unique(tmp$altitude)){
+    y1 <- tmp[tmp$alt==i,]
+    plot(rad(y1$m.obs), prop=TRUE, , main= paste(i, "m"))
+    lines(rad(y1$m.Ess), prop=TRUE)
+    lines(rad(y1$m.Ec), col="red", prop=TRUE)
+    lines(rad(y1$m.Esa), col="green", prop=TRUE)
+}
+par(mfrow=c(1,1))
+
+## Sem altitude (metacomunidade)
+tmp2 <- mf2.pi %>%
+    mutate(Ec=exp(fit.c), Ef=exp(fit.f), Ess=exp(fit.ss), Esa=exp(sum.s.alt)) %>%
+    group_by(species) %>%
+    summarise(m.obs = mean(abundance), m.Ec = mean(Ec), m.Ef = mean(Ef),
+              m.Ess=mean(Ess), m.Esa=mean(Esa)) %>%
+    as.data.frame()
+## Figura
+y2 <- tmp2
+plot(rad(y2$m.obs), prop=TRUE)
+lines(rad(y2$m.Ess), prop=TRUE)
+lines(rad(y2$m.Ec), col="red", prop=TRUE)
+lines(rad(y2$m.Esa), col="green", prop=TRUE)
+
+## Especies com  rank <10 em cada altitude
+fern.data.r10 <-
+    fern.data %>%
+    group_by(species,altitude) %>%
+    
+    
 
 #############################################
 ######### Creating figures ##################
