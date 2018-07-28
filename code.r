@@ -268,133 +268,92 @@ obs %>%
 ## Calculating predicted values for each component with merTools::predictInterval
 newdata <- fern.data[,c("species", "mountain", "site", "alt_std")]
 mf2.pi.all <- predictInterval(m.full2, newdata, which="all", type="linear.prediction", level=0.95)
+
 ## Assembles a data.frame with columns for each component
-
-mf2.pi <- cbind(newdata, mf2.pi.all[mf2.pi.all$effect=="combined",2:4])
-names(mf2.pi)[5:7] <- paste(names(mf2.pi)[5:7],"c",sep=".")
-mf2.pi <- cbind(mf2.pi, mf2.pi.all[mf2.pi.all$effect=="fixed",2:4])
-names(mf2.pi)[8:10] <- paste(names(mf2.pi)[8:10],"f",sep=".")
-mf2.pi <- cbind(mf2.pi, mf2.pi.all[mf2.pi.all$effect=="species:site",2:4])
-names(mf2.pi)[11:13] <- paste(names(mf2.pi)[11:13],"ss",sep=".")
-mf2.pi <- cbind(mf2.pi, mf2.pi.all[mf2.pi.all$effect=="species",2:4])
-names(mf2.pi)[14:16] <- paste(names(mf2.pi)[14:16],"s",sep=".")
-mf2.pi <- cbind(fern.data[, c("abundance","life_form","thickness", "altitude")], mf2.pi)
-mf2.pi$sum.s.alt <- with(mf2.pi, fit.f+fit.s)
-
 mf2.pi <- melt(mf2.pi.all, measure.vars=c("fit", "lwr", "upr")) %>%
-    cast(obs~variable+effect)
+    cast(obs~variable+effect) %>%
+    cbind(fern.data[,c("altitude", "species", "thickness", "life_form", "abundance")])
+## ":" in variable names causes problems to dplyr
+names(mf2.pi) <- gsub(":", ".",names(mf2.pi))
 
 
+################################################################################
+## Plots by traits x altitude
+################################################################################
+## tentative plot to superimpose the confidence envelopes of niche and neutral components    
 mf2.pi %>%
-    mutate(Ec=exp(fit.c), Ef=exp(fit.f)) %>%
-    group_by(alt_std, life_form, thickness) %>%
-    summarise(m.obs = mean(abundance),
-              l.obs = m.obs-sd(abundance), u.obs = m.obs+sd(abundance), 
-              m.Ec = mean(Ec), l.Ec = quantile(Ec, 0.025), u.Ec = quantile(Ec, 0.975),
-              m.Ef = mean(Ef), l.Ef = quantile(Ef, 0.025), u.Ef = quantile(Ef, 0.975))%>%
-    #mutate(l.obs=ifelse(l.obs==0, 1/30, l.obs), m.obs=ifelse(m.obs==0, 1/30, m.obs)) %>%
-    ggplot(aes(alt_std, m.obs)) +
+    mutate(ni=fit_fixed + fit_species + fit_site,
+           neu=fit_species.mountain + fit_species.site,
+           full= fit_combined) %>%
+    group_by(altitude, life_form, thickness) %>%
+    ## Alternative: sd's
+    ## summarise(m.obs = mean(abundance), l.obs = m.obs-sd(abundance), u.obs = m.obs+sd(abundance),
+    ##           m.ni = mean(ni), l.ni = m.ni-sd(ni), u.ni = m.ni+sd(ni),
+    ##           m.neu = mean(neu), l.neu = m.neu-sd(neu), u.neu = m.neu+sd(neu),
+    ##           m.full= mean(full), l.full = m.full-sd(full), u.full = m.full+sd(full)) %>%
+    summarise(m.obs = mean(log(abundance+1)),
+              l.obs = quantile(log(abundance+1),0.025), u.obs = quantile(log(abundance+1),0.975),
+              m.ni = mean(ni),
+              l.ni = quantile(ni, 0.025), u.ni = quantile(ni, 0.975),
+              m.neu = mean(neu),
+              l.neu = quantile(neu,0.025), u.neu = quantile(neu,0.975),
+              m.full= mean(full),
+              l.full = quantile(full, 0.025), u.full = quantile(full,0.975)) %>%
+    ## standardize all value to mean=0
+    mutate(m.obs0=m.obs-mean(m.obs), l.obs0=l.obs-mean(m.obs), u.obs0=u.obs-mean(m.obs),
+           m.ni0=m.ni-mean(m.ni), l.ni0=l.ni-mean(m.ni), u.ni0=u.ni-mean(m.ni),
+           m.neu0=m.neu-mean(m.neu), l.neu0=l.neu-mean(m.neu), u.neu0=u.neu-mean(m.neu),
+           m.full0=m.full-mean(m.full), l.full0=l.full-mean(m.full), u.full0=u.full-mean(m.full)) %>%
+    ggplot(aes(altitude, m.obs0)) +
     geom_point() +
-    geom_linerange(aes(ymin=l.obs, ymax=u.obs)) +
+    geom_linerange(aes(ymin=l.obs0, ymax=u.obs0)) +
     facet_wrap(~thickness + life_form) +
-    geom_ribbon(aes(ymin=l.Ec, ymax=u.Ec), alpha=0.25)+
-    geom_ribbon(aes(ymin=l.Ef, ymax=u.Ef),alpha=0.25) +
-    scale_y_log10()
+    geom_ribbon(aes(ymin=l.ni0, ymax=u.ni0), alpha=0.25)+
+    geom_ribbon(aes(ymin=l.neu0, ymax=u.neu0),alpha=0.25)
+##+geom_ribbon(aes(ymin=l.full, ymax=u.full),fill="blue", alpha=0.25)+
+    #scale_y_log10()
 
-
-mf2.pi %>%
-    mutate(Ec=exp(fit.c), Ef=exp(fit.f)) %>%
-    group_by(alt_std,mountain) %>%
-    summarise(m.obs = mean(abundance), m.Ec = mean(Ec), m.Ef = mean(Ef),
-              l.obs = quantile(abundance, 0.025), u.obs = quantile(abundance,0.975), 
-              l.Ec = quantile(Ec, 0.025), u.Ec = quantile(Ec, 0.975),
-              l.Ef = quantile(Ef, 0.025), u.Ef = quantile(Ef, 0.975))%>%
-    ggplot(aes(alt_std, m.obs)) +
-    geom_point() +
-    facet_wrap(~mountain) +
-    #geom_linerange(aes(ymin=l.obs, ymax=u.obs)) +
-    geom_ribbon(aes(ymin=l.Ec, ymax=u.Ec), alpha=0.25)+
-    geom_ribbon(aes(ymin=l.Ef, ymax=u.Ef),alpha=0.25) +
-    scale_y_log10()
-
-mf2.pi %>%
-    mutate(Ec=exp(fit.c), Ef=exp(fit.f)) %>%
-    group_by(alt_std,species) %>%
-    summarise(m.obs = mean(abundance), m.Ec = mean(Ec), m.Ef = mean(Ef))%>%
-    group_by(alt_std) %>%
-    summarise(m.spp = mean(m.obs), l.spp = quantile(m.obs, 0.025), u.spp = quantile(m.obs,0.975), 
-              m.Ec2=mean(m.Ec), l.Ec = quantile(m.Ec, 0.025), u.Ec = quantile(m.Ec, 0.975),
-              m.Ef2=mean(m.Ef), l.Ef = quantile(m.Ef, 0.025), u.Ef = quantile(m.Ef, 0.975)) %>%
-    ggplot(aes(alt_std, m.spp)) +
-    geom_point() +
-    geom_line(aes(alt_std, m.Ec2))+
-    #geom_linerange(aes(ymin=l.spp, ymax=u.spp)) +
-    geom_ribbon(aes(ymin=l.Ec, ymax=u.Ec), alpha=0.25)+
-    geom_ribbon(aes(ymin=l.Ef, ymax=u.Ef),alpha=0.25) +
-    scale_y_log10()
-
-
-
-## Plot by species
-mf2.pi %>%
-    mutate(Ec=exp(fit.c), Ef=exp(fit.f), lc=exp(lwr.c), uc = exp(upr.c),
-           lf=exp(lwr.f), uf=exp(upr.f)) %>%
-    group_by(alt_std,species) %>%
-    summarise(m.obs = mean(abundance), l.obs = min(abundance), max(abundance), 
-              m.Ec = mean(Ec), l.Ec = min(lc), u.Ec = max(uc),
-              m.Ef = mean(Ef), l.Ef = min(lf), u.Ef = max(lf))%>%
-    #mutate(l.obs=ifelse(l.obs==0, 1/30, l.obs), m.obs=ifelse(m.obs==0, 1/30, m.obs)) %>%
-    ggplot(aes(alt_std, m.obs)) +
-    geom_point()
-    ##geom_line(aes(group=species)) + scale_y_log10()
-    geom_line() + facet_wrap(~species, scales="free") +
-    theme(
-        strip.background = element_blank(),
-        strip.text.x = element_blank()
-    ) 
 
 ################################################################################
 ## SADS
 ################################################################################
 
-## Decompondo a sads previstas em cada componente
+## Observed abundances and predicted species abundances for each component and the full model
+## Mean abundances by altitude
 tmp <- mf2.pi %>%
-    mutate(Ec=exp(fit.c), Ef=exp(fit.f), Ess=exp(fit.ss), Esa=exp(sum.s.alt)) %>%
+    mutate(ni=exp(fit_fixed + fit_species + fit_site),
+           neu=exp(fit_species.mountain + fit_species.site),
+           full= exp(fit_combined)) %>%
     group_by(altitude,species) %>%
-    summarise(m.obs = mean(abundance), m.Ec = mean(Ec), m.Ef = mean(Ef),
-              m.Ess=mean(Ess), m.Esa=mean(Esa)) %>%
+    summarise(m.obs = mean(abundance), m.ni = mean(ni),
+              m.neu = mean(neu), m.full= mean(full)) %>%
     as.data.frame()
-## Sads observadas e previstas pelos componentes por altitude
+
+## Mean abundaces in the metaccomunity
+tmp2 <-mf2.pi %>%
+    mutate(ni=exp(fit_fixed + fit_species + fit_site),
+           neu=exp(fit_species.mountain + fit_species.site),
+           full= exp(fit_combined)) %>%
+    group_by(species) %>%
+    summarise(m.obs = mean(abundance), m.ni = mean(ni),
+              m.neu = mean(neu), m.full= mean(full)) %>%
+    as.data.frame()
+## SADs for each altitude an for the whole metacommunity,
+## for observed abundances and abundances predicted by each component (niche and neutral)
+## and the full model
 par(mfrow=c(3,4))
 for(i in unique(tmp$altitude)){
     y1 <- tmp[tmp$alt==i,]
     plot(rad(y1$m.obs), prop=TRUE, , main= paste(i, "m"))
-    lines(rad(y1$m.Ess), prop=TRUE)
-    lines(rad(y1$m.Ec), col="red", prop=TRUE)
-    lines(rad(y1$m.Esa), col="green", prop=TRUE)
+    lines(rad(y1$m.full), prop=TRUE, col=1)
+    lines(rad(y1$m.ni), prop=TRUE)
+    lines(rad(y1$m.neu), col="red", prop=TRUE)
 }
+plot(rad(tmp2$m.obs), prop=TRUE, , main= "Metacommunity")
+    lines(rad(tmp2$m.full), prop=TRUE, col=1)
+    lines(rad(tmp2$m.ni), prop=TRUE)
+    lines(rad(tmp2$m.neu), col="red", prop=TRUE)
 par(mfrow=c(1,1))
-
-## Sem altitude (metacomunidade)
-tmp2 <- mf2.pi %>%
-    mutate(Ec=exp(fit.c), Ef=exp(fit.f), Ess=exp(fit.ss), Esa=exp(sum.s.alt)) %>%
-    group_by(species) %>%
-    summarise(m.obs = mean(abundance), m.Ec = mean(Ec), m.Ef = mean(Ef),
-              m.Ess=mean(Ess), m.Esa=mean(Esa)) %>%
-    as.data.frame()
-## Figura
-y2 <- tmp2
-plot(rad(y2$m.obs), prop=TRUE)
-lines(rad(y2$m.Ess), prop=TRUE)
-lines(rad(y2$m.Ec), col="red", prop=TRUE)
-lines(rad(y2$m.Esa), col="green", prop=TRUE)
-
-## Especies com  rank <10 em cada altitude
-fern.data.r10 <-
-    fern.data %>%
-    group_by(species,altitude) %>%
-    
-    
 
 #############################################
 ######### Creating figures ##################
