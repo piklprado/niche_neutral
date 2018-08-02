@@ -1,8 +1,8 @@
-,,niche,,neutral,,sampling,,null
-model,,trait,environment,sp:site,sp:mountain,sp,site,mountain
-1,m.full,■,■,■,■,■,■,
-2,m.full2,,■,■,■,■,■,
-3,m.neutral,,,■,■,■,■,
-4,m.niche,■,■,,,■,■,
-5,m.env,,■,,,■,■,
-6,m.null,,,,,■,■,■
+,,niche,niche,niche,sampling,neutral,neutral,null,null
+,model,trait,environment,1+alt|site,sp,sp:site,sp:mountain,mountain,site
+1,m.full,■,■,■,■,■,■,,
+2,m.full2,,■,■,■,■,■,,
+3,m.neutral,,,,■,■,■,,
+4,m.niche,■,■,■,■,,,,
+5,m.env,,■,■,■,,,,
+6,m.null,,,,■,,,■,■
