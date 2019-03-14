@@ -19,8 +19,10 @@ library(xtable)
 library(piecewiseSEM)
 library(dplyr)
 library(ggplot2)
-source("r2_table.R")
 library(reshape)
+## functions to calculate R2 
+source("r2_full.R")
+source("r2_neutral.R")
 
 #############################
 # PART 2: loading data ######
@@ -38,14 +40,17 @@ sp <- unique(fern.data$species)
 sp.site <- cast(fern.data, site + altitude ~ species, value='abundance', FUN=mean)
 sp.site
 
+site <- sp.site$site
+altitude <- sp.site$altitude
+
 sp.site <- apply(sp.site[,c(-1, -2)], 2, as.numeric)
 
 dim(sp.site)
 
-sp.alt <- apply(sp.site[,c(-1, -2)], 2, function(x) tapply(x, sp.site$altitude, mean))
+sp.alt <- apply(sp.site, 2, function(x) tapply(x, altitude, mean))
 
 ## Creating vector of species abundances for the total metacommunity
-ab.meta <- colSums(sp.site[,c(-1, -2)])
+ab.meta <- colSums(sp.site)
 names(ab.meta) <- sp
 
 #### separating 40 most abundant species in the metacommunity
@@ -99,9 +104,9 @@ m.full2.ab <- glmer(abundance ~ alt_std + I(alt_std^2)
                   data=fern.data.ab, family="poisson",
                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
+### using estimated parameters to buit a new model
 ss <- getME(m.full2.ab, c("theta","fixef"))
-
-m.full2b.ab <- update(m.full2, start=ss)
+m.full2b.ab <- update(m.full2.ab, start=ss)
 
 m.neutral.ab <- glmer(abundance ~ (1|species) + (1|species:mountain) + (1|species:site) ,#+ (1|site),
                    data=fern.data.ab, family="poisson",
@@ -189,20 +194,13 @@ AICctab(m.list.rar, mnames=mod.names, base=TRUE, weights=TRUE, logLik=TRUE)
 BICtab(m.list.rar, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
 
 
+###############################################
+## calculando R2 #############################
+##############################################
 
-
-
-
-
-
-
-### tentando calcular o R2
-library(r2glmm)
-### mensagem de erro que o agrupamento tem que ser > que o N 
-r2beta(update(m.neutral, .~. -species:site), method="nsj", partial=TRUE)
-
-
-
+### need to fix functions to work here! 
+r2.ab <- r2.full(m.full.ab)
+r2.rar <- r2.neutral(m.neutral.rar)
 
 
 ################################################################################
