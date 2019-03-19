@@ -104,9 +104,9 @@ m.full2.ab <- glmer(abundance ~ alt_std + I(alt_std^2)
                   data=fern.data.ab, family="poisson",
                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
-### using estimated parameters to buit a new model
-ss <- getME(m.full2.ab, c("theta","fixef"))
-m.full2b.ab <- update(m.full2.ab, start=ss)
+# ### using estimated parameters to buit a new model
+# ss <- getME(m.full2.ab, c("theta","fixef"))
+# m.full2b.ab <- update(m.full2.ab, start=ss)
 
 m.neutral.ab <- glmer(abundance ~ (1|species) + (1|species:mountain) + (1|species:site) ,#+ (1|site),
                    data=fern.data.ab, family="poisson",
@@ -130,7 +130,7 @@ m.null.ab <- glmer(abundance ~ 1
                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 ## Model selection
-m.list <- list(m.full.ab, m.neutral.ab, m.niche.ab, m.null.ab, m.full2b.ab,
+m.list <- list(m.full.ab, m.neutral.ab, m.niche.ab, m.null.ab, m.full2.ab,
                m.env.ab)#, m.full.thickness, m.full.lifeform, m.full.indument)
 mod.names <- c("niche & neutral", "neutral", "niche", "null", "env & neutral",
                "env")#, "thickness&neutral", "lifef&neutral", "indument&neutral")
@@ -140,7 +140,7 @@ AICctab(m.list, mnames=mod.names, base=TRUE, weights=TRUE, logLik=TRUE)
 ## BIC
 BICtab(m.list, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
 
-
+head(fern.data.ab)
 
 #######################
 ### Rare species now
@@ -177,7 +177,6 @@ m.env.rar <- glmer(abundance ~ alt_std + I(alt_std^2)
                data=fern.data.rare, family="poisson",
                control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
-
 m.null.rar <- glmer(abundance ~ 1 
                 + (1|species) + (1|mountain) + (1|site),
                 data=fern.data.rare, family="poisson",
@@ -187,7 +186,6 @@ m.null.rar <- glmer(abundance ~ 1
 m.list.rar <- list(m.full.rar, m.neutral.rar, m.niche.rar, m.null.rar, m.full2.rar,
                m.env.rar)#, m.full.thickness, m.full.lifeform, m.full.indument)
 
-
 ### AIC
 AICctab(m.list.rar, mnames=mod.names, base=TRUE, weights=TRUE, logLik=TRUE)
 ## BIC
@@ -195,50 +193,106 @@ BICtab(m.list.rar, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
 
 
 ###############################################
-## calculando R2 #############################
+## Part 4 : calculating R2 ####################
 ##############################################
 
 ### need to fix functions to work here! 
-r2.ab <- r2.full(m.full.ab)
-r2.rar <- r2.neutral(m.neutral.rar)
+# r2.ab <- r2.full(m.full.ab)
+# r2.rar <- r2.neutral(m.neutral.rar)
 
-
-################################################################################
-## Acrescimos PI
 ## Metodo 1: desvios-padrão dos previstos
 
-# previstos sobre os dados originais (omitindo argumento newdata, usa-se a tabela original de dados)
-pred.values <- predict(m.full, re.form=NULL, type='link')
-# Third we calculate mean predicted values and standard error for each altitude 
-## Predicted mean values
-pred.table <- aggregate(pred.values, list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
-                                             life_form=fern.data$life_form), mean)
+##################################################################
+## Part 5 : generating observed and predicted values ############
+##################################################################
 
-## Predicted stardard deviations
-pred.table$sd <- aggregate(pred.values, list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
-                                             life_form=fern.data$life_form), sd)$x
+### PARA ABUNDANTES
+  # previstos sobre os dados originais (omitindo argumento newdata, usa-se a tabela original de dados)
+  pred.values <- predict(m.full.ab, re.form=NULL, type='response') # changed to type=response to have abundance back on original scale
+  # We calculate mean predicted values and standard error for each altitude 
+  ## Predicted mean values
+  pred.table <- aggregate(pred.values, list(altitude=fern.data.ab$altitude, thickness=fern.data.ab$thickness,
+                                            life_form=fern.data.ab$life_form), mean)
+  ## Predicted stardard deviations
+  pred.table$sd <- aggregate(pred.values, list(altitude=fern.data.ab$altitude, thickness=fern.data.ab$thickness,
+                                               life_form=fern.data.ab$life_form), sd))$x
 head(pred.table)
 pred.table$plwr <- pred.table$x - pred.table$sd
 pred.table$pupr <- pred.table$x + pred.table$sd
 
+### PARA RARAS
+# previstos sobre os dados originais (omitindo argumento newdata, usa-se a tabela original de dados)
+pred.values2 <- predict(m.neutral.rar, re.form=NULL, type='response') # changed to type=response to have abundance back on original scale
+
+# We calculate mean predicted values and standard error for each altitude 
+## Predicted mean values
+pred.table2 <- aggregate(pred.values2, list(altitude=fern.data.rare$altitude, thickness=fern.data.rare$thickness,
+                                          life_form=fern.data.rare$life_form), mean)
+## Predicted stardard deviations
+pred.table2$sd <- aggregate(pred.values2, list(altitude=fern.data.rare$altitude, thickness=fern.data.rare$thickness,
+                                             life_form=fern.data.rare$life_form), sd))$x
+head(pred.table2)
+pred.table2$plwr <- pred.table2$x - pred.table2$sd
+pred.table2$pupr <- pred.table2$x + pred.table2$sd
+
+### PARA ABUNDANTES
 # Second we create a data frame with observed mean values and its standard error
-obs <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
-                                              life_form=fern.data$life_form), mean)
+obs <- aggregate(fern.data.ab$abundance, by=list(altitude=fern.data.ab$alt_std, thickness=fern.data.ab$thickness,
+                                              life_form=fern.data.ab$life_form), mean)
 ## Observed standard deviation
-obs$std <- aggregate(fern.data$abundance, by=list(altitude=fern.data$alt_std, thickness=fern.data$thickness,
-                                              life_form=fern.data$life_form), sd)$x
+obs$std <- aggregate(fern.data.ab$abundance, by=list(altitude=fern.data.ab$alt_std, thickness=fern.data.ab$thickness,
+                                              life_form=fern.data.ab$life_form), sd))$x
 head(obs)
 names(obs) <- c("Altitude", "thickness", "life_form", "Abundance", "std")
 
+### PARA RARAS
+# Second we create a data frame with observed mean values and its standard error
+obs.rar <- aggregate(fern.data.rare$abundance, by=list(altitude=fern.data.rare$alt_std, thickness=fern.data.rare$thickness,
+                                                 life_form=fern.data.rare$life_form), mean)
+## Observed standard deviation
+obs.rar$std <- aggregate(fern.data.rare$abundance, by=list(altitude=fern.data.rare$alt_std, thickness=fern.data.rare$thickness,
+                                                     life_form=fern.data.rare$life_form), sd))$x
+head(obs.rar)
+names(obs.rar) <- c("Altitude", "thickness", "life_form", "Abundance", "std")
+
+summary(obs)
+
+summary(pred.table)
+
+head(obs)
+head(pred.table)
+
+cores <- rep(c(cor1, cor2, cor3), each=20)
+cores.rar <- c(rep(cor1, 20), rep(cor2, 10), rep(cor3, 20))
+nomes <- c(ep="epiphyte", hemi="hemiepiphyte", ter="terrestrial", coriacea="coriaceous", membranacea="membranaceous")
+
 ## Um grafico rapido
+#pdf("abudant_gradient.pdf")
 obs %>%
-    mutate(lAb=log(Abundance), lstd=log(std), lwr=lAb-lstd, upr=lAb+lstd) %>%
+    mutate(lAb=Abundance, lstd=std, lwr=lAb-lstd, upr=lAb+lstd, 
+           Altitude=rep(unique(altitude), 6)) %>%
     ggplot(aes(Altitude, lAb)) +
-    geom_point() +
-    geom_linerange(aes(ymin=lwr, ymax=upr)) +
-    facet_wrap(~thickness + life_form) +
-    geom_ribbon(aes(x=altitude, y=x, ymin=plwr, ymax=pupr), data=pred.table, alpha=0.5)
-## Algum problema de escala...
+    ylab("Abundance (log)") + scale_y_log10() + # making only y axis in log and not abundance values
+    geom_point(colour=cores, size=3) +
+    geom_linerange(aes(ymin=lwr, ymax=upr), colour=cores) +
+    facet_grid(thickness ~ life_form, labeller=as_labeller(nomes)) +
+    geom_ribbon(aes(x=altitude, y=x, ymin=plwr, ymax=pupr), data=pred.table, alpha=0.1) +
+    theme_classic(base_size=15) #+
+#    theme(strip.background = element_blank(), strip.text = element_blank())
+#dev.off()
+
+#pdf("rare_gradient.pdf")
+obs.rar %>%
+  mutate(lAb=Abundance, lstd=std, lwr=lAb-lstd, upr=lAb+lstd, 
+         Altitude=rep(unique(altitude), 5)) %>%
+  ggplot(aes(Altitude, lAb)) +
+  ylab("Abundance (log)") + scale_y_log10() + # making only y axis in log and not abundance values
+  geom_point(colour=cores.rar, size=3) +
+  geom_linerange(aes(ymin=lwr, ymax=upr), colour=cores.rar) +
+  facet_grid(thickness ~ life_form, labeller=as_labeller(nomes)) +
+  geom_ribbon(aes(x=altitude, y=x, ymin=plwr, ymax=pupr), data=pred.table2, alpha=0.1) +
+  theme_classic(base_size=15) #+
+#dev.off()
 
 ################################################################################
 ## Metodo 2: com bootMER (muito demorado, desisti)
@@ -261,105 +315,6 @@ obs %>%
 ###############################################
 ######### DAQUI PRA FRENTE AINDA NAO FUNFA ####
 ###############################################
-
-# all trait combinations
-esp.hab <- expand.grid(c('membranacea', 'coriacea'), c('ausente','presente'), c('ter', 'hemi', 'ep'))
-esp.hab
-
-#########################################
-#### GRAFICO MODELO #####################
-#########################################
-
-cor1 <-rgb(140, 1, 28, maxColorValue=255) #rgb(44, 152, 32, maxColorValue=255) # terrestre
-cor3 <- rgb(4, 70, 120, maxColorValue=255) #rgb(239, 144, 33, maxColorValue=255) # hemi
-cor2 <- rgb(199, 172, 29, maxColorValue=255) # ep
-
-head(obs)
-
-ep.cor.si <- subset(obs, thickness=="coriacea" & indumentum=="ausente" &life_form=="ep")
-ep.cor.ci <- subset(obs, thickness=="coriacea" & indumentum=="presente" &life_form=="ep")
-ep.mem.si <- subset(obs, thickness=="membranacea" & indumentum=="ausente" &life_form=="ep")
-ep.mem.ci <- subset(obs, thickness=="membranacea" & indumentum=="presente" &life_form=="ep")
-
-head(obs)
-
-par(mfrow=c(1,2))
-plot(Abundance ~ Altitude, data=ep.cor.si, log='x', ylim=c(0,20), col=cor1, las=1)
-segments(x0=ep.cor.si[,1],
-         y0= ep.cor.si[,5] + ep.cor.si[,6],
-         y1= ep.cor.si[,5] - ep.cor.si[,6], col=cor1)
-points(Abundance ~ Altitude, data=ep.cor.ci, pch=19,col=cor1)
-segments(x0=ep.cor.ci[,1],
-         y0= ep.cor.ci[,5] + ep.cor.ci[,6],
-         y1= ep.cor.ci[,5] - ep.cor.ci[,6], col=cor1)
-plot(Abundance ~ Altitude, data=ep.mem.si, log='x', ylim=c(0,20), col=cor1, las=1)
-segments(x0=ep.mem.si[,1],
-         y0= ep.mem.si[,5] + ep.mem.si[,6],
-         y1= ep.mem.si[,5] - ep.mem.si[,6], col=cor1)
-points(Abundance ~ Altitude, data=ep.mem.ci, pch=19, col=cor1)
-segments(x0=ep.mem.ci[,1],
-         y0= ep.mem.ci[,5] + ep.mem.ci[,6],
-         y1= ep.mem.ci[,5] - ep.mem.ci[,6], col=cor1)
-
-
-head(ep.cor.ci)
-
-
-loadfonts(device = "postscript")
-
-pdf("graf_modelo.pdf")
-
-par(mai=c(0.5, 0.5, 0.2, 0.25), oma=c(1, 1, 1, 0.1))
-layout(matrix(c(0, 0, 0, 0,
-                0, 1, 2, 0,
-                0, 3, 4, 0,
-                0, 5, 6, 0),4,4, byrow=TRUE),
-                widths=c(0.1, 1, 1, 0.1), heights=0.1)
-
-for(i in 1:8){
-plot(obs[obs$thickness==esp.hab[i,1] & obs$indumentum==esp.hab[i,2] & obs$life_form==esp.hab[i,3], c(1,5)],
-     pch=rep(c(21, 19), 3)[i], bty="l", xlab="", ylab="", cex=1.7, yaxt="n", xaxt="n", log='y')
-     #pt.bg='white' )#, 
-     col=rep(c(cor1, cor2, cor3), each=2)[i], 
-     ylim=rbind(c(0.1,40), c(0.1,40), c(0.1,120), c(0.1,120), c(0.1,23), c(0.1,23))[i,])
-# controlando eixos
-if(i %in% c(5,6)){
-    axis(1, at=unique(com.obs$Altitude), labels=unique(com.obs$Altitude), cex.axis=1.3)}
-else{axis(1, at=unique(com.obs$Altitude), labels=FALSE)}
-if(i %in% seq(1,6,2)){
-    axis(2, cex.axis=1.3, las=1)}
-else{axis(2, labels=FALSE)}
-# erro padrao obs
-segments(x0=com.obs[com.obs$esp==esp.hab[i,1]  & com.obs$hab==esp.hab[i,2], 1],
-         y0=com.obs[com.obs$esp==esp.hab[i,1]  & com.obs$hab==esp.hab[i,2], 4] +
-         com.obs[com.obs$esp==esp.hab[i,1]  & com.obs$hab==esp.hab[i,2], 5],
-         y1=com.obs[com.obs$esp==esp.hab[i,1]  & com.obs$hab==esp.hab[i,2], 4] -
-         com.obs[com.obs$esp==esp.hab[i,1]  & com.obs$hab==esp.hab[i,2], 5],
-         col=rep(c(cor1, cor2, cor3), each=2)[i])
-## Previsto medio
-lines(com.prev[com.prev$esp==esp.hab[i,1] & com.prev$hab==esp.hab[i,2], c(1,4)],
-      col=rep(c(cor1, cor2, cor3), each=2)[i])
-## Intervalo de mais ou mesno 2 x se
-lines(com.prev[com.prev$esp==esp.hab[i,1] &  com.prev$hab==esp.hab[i,2], c(1,6)], lty=2,
-     col=rep(c(cor1, cor2, cor3), each=2)[i])
-lines(com.prev[com.prev$esp==esp.hab[i,1] &  com.prev$hab==esp.hab[i,2], c(1,7)], lty=2,
-      col=rep(c(cor1, cor2, cor3), each=2)[i])
-mtext(paste(paste("(", letters[1:6][i], sep=""), ")", sep=""), side=3, adj=0.05, padj=-0.5, cex=1) #font=2
-}
-mtext("Mean species abundances (log)", side=2, outer=TRUE, padj=1, cex=1.2)
-mtext("Altitude (m)", side=1, outer=TRUE, padj=-0.5, cex=1.2)
-mtext("Membranaceous", side=3, adj=0.25, padj=1, outer=TRUE, font=2)
-mtext("Coriaceous", side=3, outer=TRUE, adj=0.8, padj=1, font=2)
-
-mtext("Terrestrial", side=4, outer=TRUE, padj=-1.7, adj=0.87, font=2)
-mtext("Hemiepiphyte", side=4, outer=TRUE, padj=-1.7, font=2)
-mtext("Epiphyte", side=4, outer=TRUE, padj=-1.7, adj=0.135, font=2)
-
-dev.off()
-
-embed_fonts("graf_modelo.eps", outfile = "graf_modelo.eps",
-            options = "-dEPSCrop")
-
 
 #########################################
 #### GRAFICO SADS  #####################
