@@ -20,6 +20,7 @@ library(piecewiseSEM)
 library(dplyr)
 library(ggplot2)
 library(reshape)
+library(sads)
 ## functions to calculate R2 
 source("r2_full.R")
 source("r2_neutral.R")
@@ -215,7 +216,7 @@ BICtab(m.list.rar, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
                                             life_form=fern.data.ab$life_form), mean)
   ## Predicted stardard deviations
   pred.table$sd <- aggregate(pred.values, list(altitude=fern.data.ab$altitude, thickness=fern.data.ab$thickness,
-                                               life_form=fern.data.ab$life_form), sd))$x
+                                               life_form=fern.data.ab$life_form), std)$x
 head(pred.table)
 pred.table$plwr <- pred.table$x - pred.table$sd
 pred.table$pupr <- pred.table$x + pred.table$sd
@@ -224,13 +225,16 @@ pred.table$pupr <- pred.table$x + pred.table$sd
 # previstos sobre os dados originais (omitindo argumento newdata, usa-se a tabela original de dados)
 pred.values2 <- predict(m.neutral.rar, re.form=NULL, type='response') # changed to type=response to have abundance back on original scale
 
+## function for standard error
+std <- function(x) sd(x)/sqrt(length(x))
+
 # We calculate mean predicted values and standard error for each altitude 
 ## Predicted mean values
 pred.table2 <- aggregate(pred.values2, list(altitude=fern.data.rare$altitude, thickness=fern.data.rare$thickness,
                                           life_form=fern.data.rare$life_form), mean)
 ## Predicted stardard deviations
 pred.table2$sd <- aggregate(pred.values2, list(altitude=fern.data.rare$altitude, thickness=fern.data.rare$thickness,
-                                             life_form=fern.data.rare$life_form), sd))$x
+                                             life_form=fern.data.rare$life_form), std)$x
 head(pred.table2)
 pred.table2$plwr <- pred.table2$x - pred.table2$sd
 pred.table2$pupr <- pred.table2$x + pred.table2$sd
@@ -241,7 +245,7 @@ obs <- aggregate(fern.data.ab$abundance, by=list(altitude=fern.data.ab$alt_std, 
                                               life_form=fern.data.ab$life_form), mean)
 ## Observed standard deviation
 obs$std <- aggregate(fern.data.ab$abundance, by=list(altitude=fern.data.ab$alt_std, thickness=fern.data.ab$thickness,
-                                              life_form=fern.data.ab$life_form), sd))$x
+                                              life_form=fern.data.ab$life_form), std)$x
 head(obs)
 names(obs) <- c("Altitude", "thickness", "life_form", "Abundance", "std")
 
@@ -251,7 +255,7 @@ obs.rar <- aggregate(fern.data.rare$abundance, by=list(altitude=fern.data.rare$a
                                                  life_form=fern.data.rare$life_form), mean)
 ## Observed standard deviation
 obs.rar$std <- aggregate(fern.data.rare$abundance, by=list(altitude=fern.data.rare$alt_std, thickness=fern.data.rare$thickness,
-                                                     life_form=fern.data.rare$life_form), sd))$x
+                                                     life_form=fern.data.rare$life_form), std)$x
 head(obs.rar)
 names(obs.rar) <- c("Altitude", "thickness", "life_form", "Abundance", "std")
 
@@ -262,9 +266,23 @@ summary(pred.table)
 head(obs)
 head(pred.table)
 
+#############################################
+######### Creating figures ##################
+############################################
+
+### cores para os graficos
+cor1 <-rgb(140, 1, 28, maxColorValue=255) #rgb(44, 152, 32, maxColorValue=255) # terrestre
+cor3 <- rgb(4, 70, 120, maxColorValue=255) #rgb(239, 144, 33, maxColorValue=255) # hemi
+cor2 <- rgb(199, 172, 29, maxColorValue=255) # ep
+
+
 cores <- rep(c(cor1, cor2, cor3), each=20)
 cores.rar <- c(rep(cor1, 20), rep(cor2, 10), rep(cor3, 20))
 nomes <- c(ep="epiphyte", hemi="hemiepiphyte", ter="terrestrial", coriacea="coriaceous", membranacea="membranaceous")
+
+#############################################
+#### Grafico com a previsao dos modelos ####
+#############################################
 
 ## Um grafico rapido
 #pdf("abudant_gradient.pdf")
@@ -294,98 +312,82 @@ obs.rar %>%
   theme_classic(base_size=15) #+
 #dev.off()
 
-################################################################################
-## Metodo 2: com bootMER (muito demorado, desisti)
-
-
-## Function to run at each boostrap simulation
-## library(parallel)
-## f1 <- function(., ...)
-##     predict(. , re.form = NULL, ...)
-## m.full.boot <- bootMer(m.full, f1, nsim=100, parallel="multicore", ncpus=4)
-## save.image()
-## m.full.boot.fix <- bootMer(m.full, f1, nsim=100, use.u=TRUE, parallel="multicore", ncpus=4)
-## save.image()
-
-
-#############################################
-######### Creating figures ##################
-############################################
-
 ###############################################
 ######### DAQUI PRA FRENTE AINDA NAO FUNFA ####
 ###############################################
 
 #########################################
-#### GRAFICO SADS  #####################
+#### Grafico SADS  #####################
 #########################################
 
-head(com.rank2)
+### abundancia da metacomunidade
+ab.tot <- data.frame(species=names(ab.meta), ab=ab.meta)
+ab.tot <- merge(ab.tot, ab.rare, by="species")
 
-head(atri)
+head(ab.tot)
 
-atri.cor <- atri[,c(1, 26, 27)]
-head(atri.cor)
+#ab.med <- lapply(all.data, function(x) x[x$x>0,])
 
-atri.cor
+# sad total
+sad <- ggplot(aes(reorder(species, -ab), ab), data=ab.tot) +
+  ylab("Abundance (log)") + scale_y_log10() + # making only y axis in log and not abundance values
+  xlab("Species") +
+  geom_point(size=3) +
+  #geom_linerange(aes(ymin=lwr, ymax=upr), colour=cores.rar) +
+  #facet_grid(ab.tot$ab.rare) +
+  #geom_ribbon(aes(x=altitude, y=x, ymin=plwr, ymax=pupr), data=pred.table2, alpha=0.1) +
+  theme_classic(base_size=15) #+
+#dev.off()
 
-atri.cor$comb <- NA
-atri.cor$comb2 <- NA
+sad
 
+### grafico com as oitavas
+oc.com <- octav(ab.tot$ab)
 
-head(atri.cor)
-atri.cor$comb[atri.cor$habitoB=="ter" & atri.cor$espessuraB=="membranacea"] <- cor1
-atri.cor$comb[atri.cor$habitoB=="ep" & atri.cor$espessuraB=="membranacea"] <- cor3
-atri.cor$comb[atri.cor$habitoB=="hemi" & atri.cor$espessuraB=="membranacea"] <- cor2
-atri.cor$comb[atri.cor$habitoB=="ter" & atri.cor$espessuraB=="coriacea"] <- cor1
-atri.cor$comb[atri.cor$habitoB=="ep" & atri.cor$espessuraB=="coriacea"] <- cor3
-atri.cor$comb[atri.cor$habitoB=="hemi" & atri.cor$espessuraB=="coriacea"] <- cor2
+## para ps valores observados
+oc.abra <- tapply(ab.tot$ab, list(ab.tot$ab.rare), octav)
+oc.df <- rbind(oc.abra[[1]], oc.abra[[2]])
 
-atri.cor$comb2[atri.cor$habitoB=="ter" & atri.cor$espessuraB=="membranacea"] <- 1
-atri.cor$comb2[atri.cor$habitoB=="ep" & atri.cor$espessuraB=="membranacea"] <- 1
-atri.cor$comb2[atri.cor$habitoB=="hemi" & atri.cor$espessuraB=="membranacea"] <- 1
-atri.cor$comb2[atri.cor$habitoB=="ter" & atri.cor$espessuraB=="coriacea"] <- 19
-atri.cor$comb2[atri.cor$habitoB=="ep" & atri.cor$espessuraB=="coriacea"] <- 19
-atri.cor$comb2[atri.cor$habitoB=="hemi" & atri.cor$espessuraB=="coriacea"] <- 19
+oc.df$abra <- as.vector(c(rep("abundant", 13), rep("rare", 9)))
 
-# funcao para plot das sads com abundancias relativas e atributos
-cont.y <- c(1,4,7,10)
-cont.x <- 8:10
+# agora para os previstos
 
-graf.sad <- function(com=com.rank2, cor=atri.cor$comb, ponto=atri.cor$comb2){
-par(mai=c(0.24, 0.6, 0.24, 0.05), oma=c(3, 3, 0.2, 0.1))
-layout(matrix(c(1, 2, 3,
-                4, 5, 6,
-                7, 8, 9,
-                10, 11,0), 4, 3, byrow=TRUE))
-for(i in 1:10){
-plot(com.rank2[[i]], log="y", ylim=c(0.0004,0.5), xlim=c(0, 63),
-     col=cor[order(com.cota[i,],decreasing=TRUE )][1:riq.cota[i]],
-     pch=ponto[order(com.cota[i,],decreasing=TRUE )][1:riq.cota[i]],
-     bty="l", cex=1.9, cex.axis=1.5, xlab="", ylab="", las=1,
-     yaxt="n", xaxt="n")
-mtext(paste(LETTERS[1:10][i], paste(unique(cota)[i], "m", sep=" "), sep=". "), adj=0.05, padj=-0.5, cex=1.2, font=2)
-if(i %in% cont.y){
-axis(2, las=1, cex.axis=1.5, at=c(0.0005, 0.002, 0.01, 0.05, 0.2), labels=c("0.0005", "0.002", "0.01", "0.05", "0.2"))
-}
-else{axis(2, at=c(0.0005, 0.002, 0.01, 0.05, 0.2), labels=rep(" ", 5))}
-if(i %in% cont.x){
-axis(1, las=1, cex.axis=1.5) }
-else{axis(1, labels=FALSE)}
-}
-plot(0,0, axes=FALSE, xlab="", ylab="", col=0)
-legend(x=-1.155, y=0.7, c("terrestrial and membranaceous", "terrestrial and coriaceous",
-                     "hemiepiphyte and membranaceous", "hemiepiphyte and coriaceous",
-                     "epiphyte and membranaceous", "epiphyte and coriaceous"),
-                 pch=rep(c(1, 19), 3), col=rep(c(cor1, cor3, cor2), each=2), cex=1.5, pt.cex=1.6, bty="n")
-mtext("Species Rank", 1, outer=TRUE, cex=1.3, padj=1)
-mtext("Species Relative Abundances (log)", 2, outer=TRUE, cex=1.3, padj=-1)
-}
+### preparando os dados
+prev.ab <- data.frame(abundance=pred.values, site=fern.data.ab$site, 
+                      altitude=fern.data.ab$altitude, species=fern.data.ab$species)
 
+prev.ra <- data.frame(abundance=pred.values2, site=fern.data.rare$site, 
+                      altitude=fern.data.rare$altitude, species=fern.data.rare$species)
 
+all.prev <- list(prev.ab, prev.ra)
 
+sp.site.prev <- lapply(all.prev, function(x) cast(x, site + altitude ~ species, 
+                                             value='abundance', FUN=mean)) 
 
-save.image("Mortaraetal.RData")
+### calculando vetor de abundancias previstos
+ab.prev <- lapply(sp.site.prev, colSums)
+ab.prev
+
+### calculando as oitavas previstas
+oc.prev <- lapply(ab.prev, octav)
+oc.prev
+
+oc.df.prev <- rbind(oc.prev[[1]], oc.prev[[2]])
+oc.df.prev$abra <- c(rep("abundant", 13), rep("rare", 10))
+
+oc.df.prev <- oc.df.prev[,-14]
+
+oc <- ggplot(aes(octave, Freq), data=oc.df) +
+  geom_bar(stat="identity") +
+  facet_grid(abra ~.) +
+  geom_point(aes(octave, Freq), data=oc.df.prev) +
+  theme_classic(base_size=15) #+
+
+pdf("octaves.pdf")
+oc
+dev.off()
+
+#save.image("Mortaraetal.RData")
 
 
     
