@@ -315,8 +315,6 @@ env.data <- data.frame(site=unique(id$site), grad=scale(sites$env), region=sites
 all.data <- merge(data, env.data, by=c("site"))
 all.data <- merge(all.data, trait.data, by=c("spp"))
 
-save(all.data, file="data.Rda")
-
 ```
 
 Abundances curves of species across the environmental gradient are
@@ -458,9 +456,6 @@ null.det <- m.null(ab=all.data$det,
 # AIC for each model
 AICctab(nineu.det.rt, envneu.det, niche.det.rt, env.det, neu.det, null.det)
 
-# R2 for the best model explaining data
-r2.det.rtPS <- rsquared(nineu.det.rt)
-r2.det.rtPS
 ```
 
 ##### Deterministic community w/ wrong traits, from poisson sample
@@ -479,10 +474,6 @@ niche.det.wt <- m.niche(ab=all.data$det, trait=all.data$trait.wr, grad=all.data$
 
 # AIC for each model
 AICctab(nineu.det.wt, envneu.det, niche.det.wt, env.det, neu.det, null.det)
-
-# R2 for the best model explaining data
-r2.det.wtPS <- rsquared(envneu.det)
-r2.det.wtPS
 ```
 
 
@@ -525,6 +516,8 @@ AICctab(nineu.sto.rt, envneu.sto, niche.sto.rt, env.sto, neu.sto, null.sto)
 # R2 for the best model explaining data
 #Error: invalid term in model formula
 #r2.neuPS <- rsquared(neu.sto)
+
+
 ```
 
 
@@ -534,7 +527,8 @@ AICctab(nineu.sto.rt, envneu.sto, niche.sto.rt, env.sto, neu.sto, null.sto)
 We now will compare results from model selection of the different scenarios we created. We consider the model with lowest AIC (Akaike Information Criterion) as the model that best explains the community data. We will depict all best models in terms of their adjusted $R^{2}$. Adjusted $R^{2}$, as they measure the relative importance of fixed and random effects in the model, are used here a proxy of correspondence of community processes to terms in the model. Therefore, conditional $R^{2}$ represents the influence of niche dynamics whereas marginal $R^{2}$ is partitioned into each random term and can represent either niche (in the case of the term 1+grad|spp and 1+grad|site), neutral dynamics (for 1|spp:mountain and 1|spp:site) or idiosyncratic effects of species (1|spp).  
 
 ```{r r-squared table}
-# Function to calculate R-squared for each random effect adapted from Nakagawa
+# Functions to calculate R-squared for each random effect, each function fot each possible best model
+# adapted from Nakagawa
 # Works only for Poisson GLMMs
 
 ### Funtion for the full model
@@ -588,7 +582,6 @@ r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
     names(R2) <- r2.tab$component
 return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
 }
-
 
 ## Function for full2 model
 r2.full2 <- function(model, ...){
@@ -647,7 +640,6 @@ return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
 }
 
 ## Funtion for neutral model 
-##### HUSTON, WE HAVE A PROBLEM!
 r2.neutral <- function(model, ...){
 # Function to calculate the null model, model with all random terms 
 best.null <- function(model, ...) {
@@ -701,12 +693,7 @@ In order to address this question, we compare results of the selected model for 
 ```{r test 4.1}
 #Calculating R2
 r2.det.rt <- r2.full(nineu.det.rt)$R2
-r2.sto <- r2.neutral(neu.sto)$R2 # convergence error
-
-# AQUI ESTOU APENAS CHECANDO O CALCULO DO R2, vamos tirar para o tutorial
-# ok para mfull
-r2.det.rtPS
-r2.det.rt 
+r2.sto <- r2.neutral(neu.sto)$R2
 
 table1 <- as.data.frame(bind_rows(r2.det.rt, r2.sto))
 row.names(table1) <- c("Deterministic community w/ right traits", 
@@ -725,22 +712,17 @@ For communities built by known niche dynamics conditional $R^{2}$ value is compo
 In order to examine how random effects reflect uninformed traits, we compare the results of the selected model from deterministic communities with right and wrong traits. 
 ```{r test 4.2 right-wrong}
 #Calculating R2
-## AQUI TEMOS O PROBLEMA
-#r2.det.rt
-#r2.det.wt <- r2.full2(nineu.det.wt)$R2 # ERRO!!!!!! shit shit shit
-# 
-# # AQUI ESTOU APENAS CHECANDO O CALCULO DO R2, vamos tirar para o tutorial
-# r2.det.wtPS
-# r2.det.wt 
+r2.det.rt
+r2.det.wt <- r2.full2(envneu.det)$R2
 
-# #Creating table
-# table2 <- as.data.frame(bind_rows(r2.det.rt, r2.det.wt))
-# row.names(table2) <- c("Deterministic community w/ right traits", 
-#                    "Stochastic community w/ right traits")
+## Creating table
+table2 <- as.data.frame(bind_rows(r2.det.rt, r2.det.wt))
+row.names(table2) <- c("Deterministic community w/ right traits", 
+                    "Stochastic community w/ right traits")
 ```
 
 ```{r table2, echo=FALSE, results='asis'}
-#kable(table2)
+kable(table2)
 ```
 
 Only looking into the $R^{2}$ conditional values, one cannot examine difference between deterministic communities built by uninformative and informative species traits. However, by examining the partition $R^{2}$ values, one can detect if traits used in the model are actually influencing species abundances. Uninformative traits inflate marginal $R^{2}$ because of the importance of the term (1|spp:site) and minimizes the influence of the trait-environment correlation. When traits are informative and niche dynamics are preponderant, $R^{2}$ for fixed effects should be particularly high. 
