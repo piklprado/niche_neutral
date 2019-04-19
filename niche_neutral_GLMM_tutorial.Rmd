@@ -291,7 +291,7 @@ negative binomial sample, representing the structure of overdispersed
 species abundance data.
 
 ```{r sampling}
-Nsamp <- 0.5
+Nsamp <- 0.1
 # Poisson samples
 ## Deterministic community
 det.pois <- rpois(length(det$count), det$count*Nsamp)
@@ -374,40 +374,48 @@ env.data <- data.frame(site=unique(id$site), grad=scale(sites$env),
 ## Preparing data table for model selection
 all.data <- merge(data, env.data, by=c("site"))
 all.data <- merge(all.data, trait.data, by=c("spp"))
-
+## Checking for species with zero total abundances
+no.zero <- all.data %>%
+    group_by(spp) %>%
+    summarise(det.tot=sum(det), sto.tot= sum(sto)) %>%
+    mutate(det.nozero=det.tot>0, sto.nozero=sto.tot>0)
 ```
 
 Abundances curves of species across the environmental gradient are
 as expected:
 
 ```{r checking abundance x grad plots}
-## A sample of species, a panel for each region
+## A sample of 9 species, a panel for each region
 ## Niche
+index <- paste("sp",sample(1:nlevels(all.data$spp),9),sep=".")
+## all.data %>%
+##     filter(spp%in%index) %>%
+##     ggplot(aes(grad, det)) + geom_line(aes(colour=spp)) +
+##     scale_y_log10()  +
+##     facet_wrap(~region) +
+##     labs(x="Environmental gradient", y="Species abundance",
+##         title="Deterministic community from Poisson sample")+
+##     theme(legend.position="none")
 all.data %>%
-    filter(as.integer(spp)<11) %>%
-    ggplot(aes(grad, det)) + geom_line(aes(colour=spp)) +
-    scale_y_log10()  +
-    facet_wrap(~region) +
-   labs(x="Environmental gradient", y="Species abundance",
-        title="Deterministic community from Poisson sample")
-all.data %>%
-    filter(spp=="sp.10")%>%
-    ggplot(aes(grad, det)) + geom_point() + facet_wrap(~region) +
+    filter(spp%in%index) %>%
+    ggplot(aes(grad, det)) + geom_line(aes(colour=region)) + facet_wrap(~spp) +
+    scale_y_log10() + 
     labs(x="Environmental gradient", y="Species abundance",
-         title="Species sp.10 of deterministic community from Poisson sample")
+         title=paste("Deterministic community from Poisson sample"))
 ## Neutral
 all.data %>%
-#    filter(as.integer(spp)<21) %>%
     ggplot(aes(grad, sto)) + geom_line(aes(colour=spp)) +
     scale_y_log10() +
     facet_wrap(~region) +
     labs(x="Environmental gradient", y="Species abundance",
-         title="Stochastic community from Poisson sample")
+         title="Stochastic community from Poisson sample") +
+    theme(legend.position="none")
 all.data %>%
-    filter(spp=="sp.10")%>%
-    ggplot(aes(grad, sto)) + geom_point() + facet_wrap(~region) +
+    filter(spp%in%index) %>%
+    ggplot(aes(grad, sto)) + geom_line(aes(colour=region)) + facet_wrap(~spp) +
+    scale_y_log10() + 
     labs(x="Environmental gradient", y="Species abundance",
-         title="Species sp.10 of stochastic community from Poisson sample")
+         title=paste("Deterministic community from Poisson sample"))
 ```
 
 

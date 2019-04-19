@@ -466,6 +466,8 @@ m.env <- function(ab, grad, site, spp, ...){
 }
 
 ## 5. Solely neutral dynamics
+## PI: Neste e nos demais sem nicho não falta o termo 1|site ?
+## Se sim tem que refazer estes, e também o cálculo do R2
 m.neutral <- function(ab, site, region, spp, ...){
     neutral <- glmer(ab ~ 1 +
                          (1|spp) +
@@ -508,9 +510,9 @@ envneu.det <- m.full2(ab=all.data$det,
                       region=all.data$region, 
                       spp=all.data$spp,
                       family="poisson",
-                      control=glmerControl(optimizer="bobyqa", 
-                                           optCtrl=list(maxfun=5e6))
-                      )
+                       control=glmerControl(optimizer="bobyqa", 
+                                            optCtrl=list(maxfun=5e7))
+                       )
 # Niche dynamics
 ## With traits
 niche.det.rt <- m.niche(ab=all.data$det,
@@ -519,9 +521,9 @@ niche.det.rt <- m.niche(ab=all.data$det,
                         site=all.data$site, 
                         spp=all.data$spp,
                         family="poisson",
-                        control=glmerControl(optimizer="bobyqa", 
-                                             optCtrl=list(maxfun=5e7))
-                        )
+                       control=glmerControl(optimizer="bobyqa", 
+                                            optCtrl=list(maxfun=5e7))
+                       )
                         
 # W/o traits
 env.det <- m.env(ab=all.data$det,
@@ -539,18 +541,20 @@ neu.det <- m.neutral(ab=all.data$det,
                      region=all.data$region, 
                      spp=all.data$spp,
                      family="poisson",
-                     control=glmerControl(optimizer="bobyqa", 
-                                          optCtrl=list(maxfun=5e7))
-                     )
+                       control=glmerControl(optimizer="bobyqa", 
+                                            optCtrl=list(maxfun=5e7))
+                       )
+
 # Null hypothesis
 null.det <- m.null(ab=all.data$det, 
                    site=all.data$site,
                    region=all.data$region, 
                    spp=all.data$spp,
                    family="poisson",
-                   control=glmerControl(optimizer="bobyqa", 
-                                        optCtrl=list(maxfun=5e7))
-                   )
+                       control=glmerControl(optimizer="bobyqa", 
+                                            optCtrl=list(maxfun=5e7))
+                       )
+
 
 # AIC for each model
 AICctab(nineu.det.rt, envneu.det, niche.det.rt, env.det, neu.det, null.det)
@@ -573,7 +577,6 @@ nineu.det.wt <- m.full(ab=all.data$det,
                        )
 
 # Niche dynamics 
-###### SOMETIMES CONVERGENCE WARNINGS HERE :( #####
 niche.det.wt <- m.niche(ab=all.data$det,
                         trait=all.data$trait.wr,
                         grad=all.data$grad,
@@ -601,8 +604,9 @@ nineu.sto.rt <- m.full(ab=all.data$sto,
                        region=all.data$region, 
                        spp=all.data$spp,
                        family="poisson",
-                       control=glmerControl(optimizer="bobyqa", 
-                                            optCtrl=list(maxfun=5e7)))
+                       control=glmerControl(optimizer="optimx", 
+                                            optCtrl=list(method="nlminb",
+                                                         starttests = FALSE, kkt = FALSE)))
 
 # Niche and neutral dynamics without species traits
 envneu.sto <- m.full2(ab=all.data$sto, grad=all.data$grad,
@@ -632,7 +636,6 @@ env.sto <- m.env(ab=all.data$sto, grad=all.data$grad,
                                       optCtrl=list(maxfun=5e7)))
 
 # Neutral dynamics
-###### CONVERGENCE WARNINGS with bobyqa#####
 neu.sto <- m.neutral(ab=all.data$sto,
                      site=all.data$site,
                      region=all.data$region, 
@@ -676,19 +679,23 @@ random term and can represent either niche (in the case of the term
 # Works only for Poisson GLMMs
 
 ### Funtion for the full model
-r2.full <- function(model, ...){
-    ## Function to calculate the null model, model with all random terms 
-    best.null <- function(model, ...) {
+## added 'null.model' argument and '...' argument to the fit of the null model (to allow optmization control)
+r2.full <- function(model, null.model, ...){
+    ## Function to calculate the null model, model with all random terms
+    best.null <- function(model) {
         parens <- function(x) paste0("(",x,")")
         onlyBars <- function(form) reformulate(sapply(findbars(form),
                                                       function(x)  parens(deparse(x))),
                                                response=".")
         onlyBars(formula(model))
-        best.null <- update(model,onlyBars(formula(model)))
+        best.null <- update(model,onlyBars(formula(model)), ...)
         return(best.null)
     }
     ## Calculates null model
-    m0 <- best.null(model)
+    if(missing(null.model))
+       m0 <- best.null(model)
+    else
+        m0 <- null.model
     ## Variance for fixed effects
     VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
     ## Variance for slope/intercept random effects
@@ -728,19 +735,23 @@ r2.full <- function(model, ...){
 }
 
 ## Function for full2 model
-r2.full2 <- function(model, ...){
+## added 'null.model' argument and '...' argument to the fit of the null model (to allow optmization control)
+r2.full2 <- function(model, null.model, ...){
     ## Function to calculate the null model, model with all random terms 
-    best.null <- function(model, ...) {
+    best.null <- function(model) {
         parens <- function(x) paste0("(",x,")")
         onlyBars <- function(form) reformulate(sapply(findbars(form),
                                                       function(x)  parens(deparse(x))),
                                                response=".")
         onlyBars(formula(model))
-        best.null <- update(model,onlyBars(formula(model)))
+        best.null <- update(model,onlyBars(formula(model)), ...)
         return(best.null)
     }
     ## Calculates null model
-    m0 <- best.null(model)
+    if(missing(null.model))
+        m0 <- best.null(model)
+    else
+        m0 <- null.model
     ## Variance for fixed effects
     VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
     ## Variance for slope/intercept random effects
@@ -783,20 +794,24 @@ r2.full2 <- function(model, ...){
     return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
 }
 
-## Funtion for neutral model 
-r2.neutral <- function(model, ...){
+## Funtion for neutral model
+## added 'null.model' argument and '...' argument to the fit of the null model (to allow optmization control)
+r2.neutral <- function(model, null.model, ...){
     ## Function to calculate the null model, model with all random terms 
-    best.null <- function(model, ...) {
+    best.null <- function(model) {
         parens <- function(x) paste0("(",x,")")
         onlyBars <- function(form) reformulate(sapply(findbars(form),
                                                       function(x)  parens(deparse(x))),
                                                response=".")
         onlyBars(formula(model))
-        best.null <- update(model,onlyBars(formula(model)))
+        best.null <- update(model,onlyBars(formula(model)), ...)
         return(best.null)
     }
     ## Calculates null model
-    m0 <- best.null(model)
+    if(missing(null.model))
+       m0 <- best.null(model)
+    else
+        m0 <- null.model
     ## Variance for fixed effects
     VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
     ## Variance for each component of random effects
@@ -864,11 +879,12 @@ communities with right and wrong traits.
 
 ```{r test 4.2 right-wrong}
 #Calculating R2
-## PI: comentei as duas linhas a seguir e adicionei a ultima, que me parece o comando correto, confere?
-## r2.det.rt
-# r2.det.wt <- r2.full2(envneu.det)$R2
-## Nao deveria ser
-r2.det.wt <- r2.full(nineu.det.wt)$R2
+## r2.det.rt ## Comentei esta linha, pq só mostra o objeto. Tem algum problema?
+## PI: se o neu.det passar a incluir o termo 1|site acho que pode usar ele como modelo nulo para este R2, no argumento 'null.model', não?
+## Control arguments to avoid convergence issues in the fit of the neutral model
+r2.det.wt <- r2.full2(envneu.det,
+                      control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e7)) 
+                      )$R2
 
 ## Creating table
 table2 <- as.data.frame(bind_rows(r2.det.rt, r2.det.wt))
@@ -878,6 +894,7 @@ row.names(table2) <- c("Deterministic community w/ right traits",
 
 ```{r table2, echo=FALSE, results='asis'}
 kable(table2)
+## Most of conditional R2 goes to 1|spp and not to 1|spp:site or 1|spp:region, check
 ```
 
 Only looking into the $R^{2}$ conditional values, one cannot examine
@@ -889,6 +906,7 @@ marginal $R^{2}$ because of the importance of the term (1|spp:site)
 and minimizes the influence of the trait-environment correlation. When
 traits are informative and niche dynamics are preponderant, $R^{2}$
 for fixed effects should be particularly high.
+
 
 
 
