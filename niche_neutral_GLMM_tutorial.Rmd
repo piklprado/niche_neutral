@@ -11,25 +11,51 @@ output:
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
 ```
 
 ### The framework
 
-The general idea of our framework is to translate niche and neutral dynamics on community assembly into fixed and random effects of generalized mixed models. 
-Within our framework one can simultaneously test the importance of niche solely, neutrality solely and combinations of niche and neutral effects on community structure (abundance or occurrence). 
+The general idea of our framework is to translate niche and neutral
+dynamics on community assembly into fixed and random effects of
+generalized mixed models.  Within our framework one can simultaneously
+test the importance of niche solely, neutrality solely and
+combinations of niche and neutral effects on community structure
+(abundance or occurrence).
 
-We use the model selection approach to test multiple hypothesis and we use conditional and marginal $R^{2}$ values to quantify the relative importance of niche and neutrality on community structure. 
+We use the model selection approach to test multiple hypothesis and we
+use conditional and marginal $R^{2}$ values to quantify the relative
+importance of niche and neutrality on community structure.
 
-Main criticism of our framework rely on: (1) Are fixed and random effects actually capturing niche and neutral dynamics? (2) Are random effects only capturing neutral dynamics or uninformed species traits are inflating random effects? 
+Main criticism of our framework rely on: (1) Are fixed and random
+effects actually capturing niche and neutral dynamics? (2) Are random
+effects only capturing neutral dynamics or uninformed species traits
+are inflating random effects?
 
-In order to show how we implemented our framework and how model components are translated into niche and neutral dynamics we perform simulations as described below. We do not intend to scan all parameter space of type of communities and traits, neither make a comprehensive investigation of sampling effects. Our goal with this tutorial is to address main criticisms of our framework and show how promising our framework is to quantify the relative importance of niche and neutral dynamics.           
+In order to show how we implemented our framework and how model
+components are translated into niche and neutral dynamics we performed
+simulations as described below. We do not intend to scan all parameter
+space of type of communities and traits, neither make a comprehensive
+investigation of sampling effects. Our goal with this tutorial is to
+address main criticisms of our framework and show how promising our
+framework is to quantify the relative importance of niche and neutral
+dynamics.
 
 ## A test of our modelling framework
 
-Here, we present a working example of our modelling framework. We use simulated communities based on niche and neutral dynamics in order to show how fixed and random effects capture different ecological processes. Also, we use traits with strong and week correlations to species abundance in order to show how fixed and random effects capture neutral dynamics when traits are uninformative. Therefore, we simulate stochastic and deterministic meta-communities and use strong or weak traits in model selection. 
+Here, we present a working example of our modelling framework. We use
+simulated communities based on niche and neutral dynamics in order to
+show how fixed and random effects capture different ecological
+processes. Also, we use traits with strong and weak correlations to
+species abundance in order to show how fixed and random effects
+capture neutral dynamics when traits are uninformative. Therefore, we
+simulate stochastic and deterministic meta-communities and use strong
+or weak traits in model selection.
 
-We simulate meta-communities with the same data structure as our abundance data of ferns in three mountain chains in southern Brazil. Then, we make Poisson of communities and use samples from the meta-communities in our model selection framework.
+We simulate meta-communities with the same data structure as our
+abundance data of ferns in three mountain chains in southern
+Brazil. Then, we make Poisson of communities and use samples from the
+meta-communities in our model selection framework.
 
 In order to address main criticisms of our framework, we analyze into three scenarios:
 
@@ -44,10 +70,14 @@ In order to address main criticisms of our framework, we analyze into three scen
 
 #### 1.1. Getting data for simulations
 
-The simulations are based on several packages that should be installed in the user's computer before starting the tutorial. The packages bellow should be installed as regular CRAN packages before loaded. To check if they are already installed run the code below.
+The simulations are based on several packages that should be installed
+in the user's computer before starting the tutorial. The packages
+bellow should be installed as regular CRAN packages before loaded. To
+check if they are already installed run the code below.
 
 ```{r,  message=FALSE}
-packages <- c("devtools", "ade4", "vegan", "lme4", "bbmle", "optimx", "piecewiseSEM", "sads", "ggplot2", "dplyr", "MASS", "knitr")
+packages <- c("devtools", "ade4", "vegan", "lme4", "bbmle", "optimx",
+              "piecewiseSEM", "sads", "ggplot2", "dplyr", "MASS", "knitr")
 instpack <- packages[!packages %in% installed.packages()]
 if(length(instpack)>0)
 {
@@ -55,7 +85,12 @@ if(length(instpack)>0)
 }
 ```
 
-One of the packages needed in this tutorial, MCSim (MetaCommunity Simulation) is not available at CRAN and should be installed directly from the development repository github. Follow the code bellow to install it. Information about this package can be found at <a href="http://rstudio-pubs-static.s3.amazonaws.com/159425_80725873417e42fdb13821c10a198281.html"> MCSim </a>
+One of the packages needed in this tutorial, MCSim (MetaCommunity
+Simulation) is not available at CRAN and should be installed directly
+from the development repository github. Follow the code bellow to
+install it. Information about this package can be found at <a
+href="http://rstudio-pubs-static.s3.amazonaws.com/159425_80725873417e42fdb13821c10a198281.html">
+MCSim </a>
 
 ```{r,  message=FALSE}
 if(! "MCSim" %in% installed.packages())
@@ -91,9 +126,16 @@ Here we specify the random number generator seed:
 set.seed(42)
 ```
 
-To evaluate our methods, we generate the meta-community data. Part of the code used here is adapted from <b> <a href="http://rstudio-pubs-static.s3.amazonaws.com/159425_80725873417e42fdb13821c10a198281.html">  Sokol's MCSim tutorial </a> </b>. We create data from 30 sites across three mountain chains. We simulate abundance values for 20 different species. 
+To evaluate our methods, we generate the meta-community data. Part of
+the code used here is adapted from <b> <a
+href="http://rstudio-pubs-static.s3.amazonaws.com/159425_80725873417e42fdb13821c10a198281.html">
+Sokol's MCSim tutorial </a> </b>. We create data from 30 sites across
+three mountain chains. We simulate abundance values for 20 different
+species.
 
-For both deterministic and stochastic scenarios, we simulate 10 different meta-communities until time-step 100 and then take mean values from the 100^ht^ last time-step.
+For both deterministic and stochastic scenarios, we simulate 10
+different meta-communities until time-step 100 and then take mean
+values from the 100^ht^ last time-step.
 
 ```{r generate data}
 
@@ -120,7 +162,8 @@ sp.opt <- runif(Nspp, min = 1, max = 5)
 
 ```
 
-Here, we generate the sites x species matrix with community initial conditions to run the simulations.
+Here, we generate the sites x species matrix with community initial
+conditions to run the simulations.
 
 ```{r initial community}
 ## Initial condition ##
@@ -200,9 +243,10 @@ det <- data.frame(id, count=rowMeans(det.resu))
 simulation_landscape_sto <- MCSim::fn.make.landscape(
   site.coords = sites[,1:2],
   Ef = sites$env,
-  m = 0.5, # reducing immigration parameter, allowing limited dispersal
+  m = 0.5, 
   JM = JM)
-## It seems that in R 3.5 it is necessary to convert the dist mat in this object form dataframe to a matrix
+## It seems that in R 3.5 it is necessary to convert
+## the dist mat in this object from dataframe to a matrix
 simulation_landscape_sto$dist.mat <-  as.matrix(simulation_landscape_sto$dist.mat)
 ```
 
@@ -239,7 +283,12 @@ sto <- data.frame(id, count=rowMeans(sto.resu))
 
 Then, we take Poisson samples of the different scenarios. 
 
-Here, we are sampling 50% of simulated communities following Poisson and negative binomial distributions. Our objective here is to generate a scenario in which data is sampled from a Poisson distribution, representing the structure of species abundance data and from a negative binomial sample, representing the structure of overdispersed species abundance data. 
+Here, we are sampling 50% of simulated communities following Poisson
+and negative binomial distributions. Our objective here is to generate
+a scenario in which data is sampled from a Poisson distribution,
+representing the structure of species abundance data and from a
+negative binomial sample, representing the structure of overdispersed
+species abundance data.
 
 ```{r sampling}
 Nsamp <- 0.5
@@ -272,7 +321,15 @@ We aim to simultaneously test these four main hypotheses:
 
 4. Species abundances vary randomly across regions (null model)
 
-In order to represent each hypothesis, we will build a set of models using GLMM with fixed and random effects as below. Niche dynamics are represented by trait and environment effects, whereas neutral dynamics are represented by species, sites and region effects as random effects. Given that species traits are measured at species level, we included species as a random effect on all models (explicitly or implicity fo models with the term 1+grad|spp). Therefore, this random effect does not represent neutral or dynamics, but an indiosyncratic effect of species allowing a random intercept for species abundances.
+In order to represent each hypothesis, we will build a set of models
+using GLMM with fixed and random effects as below. Niche dynamics are
+represented by trait and environment effects, whereas neutral dynamics
+are represented by species, sites and region effects as random
+effects. Given that species traits are measured at species level, we
+included species as a random effect on all models (explicitly or
+implicity fo models with the term 1+grad|spp). Therefore, this random
+effect does not represent neutral or dynamics, but an indiosyncratic
+effect of species allowing a random intercept for species abundances.
 
 Hypothesis | Fixed effects | Random Effects
 -----------|---------------|----------------
@@ -289,12 +346,14 @@ Null model | - | 1|spp + 1|site + 1|region
 
 ##### Preparing abundance, trait and environmental data
 
-Here, we combine species abundance data sampled from deterministic and stochastic simulations with traits and environmental data. 
+Here, we combine species abundance data sampled from deterministic and
+stochastic simulations with traits and environmental data.
 
 ```{r selecting comm, results="hide", message=FALSE}
 
 # Binding all data togheter
-data <- data.frame(site=id[,"site"], spp=id[,"spp"], det=det.pois, sto=sto.pois)
+data <- data.frame(site=id[,"site"], spp=id[,"spp"],
+                   det=det.pois, sto=sto.pois)
                    
 # Now we need species traits, gradient and spacial info
 
@@ -309,7 +368,8 @@ while(cor.t>0.01){
 trait.data <- data.frame(spp=unique(id$spp), trait= scale(sp.opt),
                     trait.wr=scale(wrong.t)) # creating vector w/ wrong traits
 ## Gradient
-env.data <- data.frame(site=unique(id$site), grad=scale(sites$env), region=sites$region)
+env.data <- data.frame(site=unique(id$site), grad=scale(sites$env),
+                       region=sites$region)
 
 ## Preparing data table for model selection
 all.data <- merge(data, env.data, by=c("site"))
@@ -328,95 +388,85 @@ all.data %>%
     ggplot(aes(grad, det)) + geom_line(aes(colour=spp)) +
     scale_y_log10()  +
     facet_wrap(~region) +
-   labs(x="Environmental gradient", y="Species abundance", title="Deterministic community from Poisson sample")
+   labs(x="Environmental gradient", y="Species abundance",
+        title="Deterministic community from Poisson sample")
 all.data %>%
     filter(spp=="sp.10")%>%
     ggplot(aes(grad, det)) + geom_point() + facet_wrap(~region) +
-    labs(x="Environmental gradient", y="Species abundance", title="Species sp.10 of deterministic community from Poisson sample")
+    labs(x="Environmental gradient", y="Species abundance",
+         title="Species sp.10 of deterministic community from Poisson sample")
 ## Neutral
 all.data %>%
 #    filter(as.integer(spp)<21) %>%
     ggplot(aes(grad, sto)) + geom_line(aes(colour=spp)) +
     scale_y_log10() +
     facet_wrap(~region) +
-    labs(x="Environmental gradient", y="Species abundance", title="Stochastic community from Poisson sample")
+    labs(x="Environmental gradient", y="Species abundance",
+         title="Stochastic community from Poisson sample")
 all.data %>%
     filter(spp=="sp.10")%>%
     ggplot(aes(grad, sto)) + geom_point() + facet_wrap(~region) +
-    labs(x="Environmental gradient", y="Species abundance", title="Species sp.10 of stochastic community from Poisson sample")
+    labs(x="Environmental gradient", y="Species abundance",
+         title="Species sp.10 of stochastic community from Poisson sample")
 ```
 
 
 #### 3.2 Adjusting model to the data
 
-First, we create simple functions to perform model selection. Although the logic is generic, functions below are specific to run this example. We create a function for each of our hypothesis. 
+First, we create simple functions to perform model selection. Although
+the logic is generic, functions below are specific to run this
+example. We create a function for each of our hypothesis.
 
 ```{r packages model selection}
 
 ## 1. Hypothesis of niche and neutral dynamics
-m.full <- function(ab, trait, grad, site, region, spp, family, ...){
-niche.neutral <- glmer(ab ~ trait + grad + I(grad^2) + 
-                                trait:grad + trait:I(grad^2) + 
+m.full <- function(ab, trait, grad, site, region, spp, ...){
+    niche.neutral <- glmer(ab ~ trait + grad + I(grad^2) + 
+                               trait:grad + trait:I(grad^2) + 
                                (1|spp) +
-                               (1|spp:region) + (1|spp:site) + (1+grad|site),
-                               family=family,
-                                control=glmerControl(optimizer="bobyqa", 
-                                                     optCtrl=list(maxfun=5e7)))
-       return(niche.neutral)#, 
+                               (1|spp:region) + (1|spp:site) + (1+grad|site), ...)
+    return(niche.neutral)#, 
 }
 
 ## 2. Hypothesis of niche and neutral dynamics without species traits
-m.full2 <- function(ab, grad, site, region, spp, family, ...){
-env.neutral <- glmer(ab ~ grad + I(grad^2) + 
-                               (1|spp:region) + (1|spp:site) + (1+grad|spp) + (1+grad|site),
-                               family=family,
-                                control=glmerControl(optimizer="bobyqa", 
-                                                     optCtrl=list(maxfun=5e6)))
-       return(env.neutral)#, 
+m.full2 <- function(ab, grad, site, region, spp, ...){
+    env.neutral <- glmer(ab ~ grad + I(grad^2) + 
+                             (1|spp:region) + (1|spp:site) +
+                             (1+grad|spp) + (1+grad|site), ...)
+    return(env.neutral)
 }
 
 ## 3. Solely niche dynamics
-m.niche <- function(ab, trait, grad, site, spp, family, ...){
-niche <- glmer(ab ~ trait + grad + I(grad^2) + 
-                                trait:grad + trait:I(grad^2) + 
-                               (1|spp) +
-                              (1+grad|site),
-                               family=family,
-                                control=glmerControl(optimizer="bobyqa", 
-                                                     optCtrl=list(maxfun=5e6)))
-       return(niche)#, 
+m.niche <- function(ab, trait, grad, site, spp, ...){
+    niche <- glmer(ab ~ trait + grad + I(grad^2) + 
+                       trait:grad + trait:I(grad^2) + 
+                       (1|spp) +
+                       (1+grad|site), ...)
+    return(niche)#, 
 }
 
 
 ## 4. Solely niche dynamics without species trait (including term to catch wrong traits)
-m.env <- function(ab, grad, site, spp, family, ...){
-env <- glmer(ab ~ grad + I(grad^2) 
-                         + (1+grad|spp) + (1+grad|site),
-                               family=family,
-                                control=glmerControl(optimizer="bobyqa", 
-                                                     optCtrl=list(maxfun=5e6)))
-       return(env)#, 
+m.env <- function(ab, grad, site, spp, ...){
+    env <- glmer(ab ~ grad + I(grad^2) 
+                 + (1+grad|spp) + (1+grad|site), ...)
+    return(env)#, 
 }
 
 ## 5. Solely neutral dynamics
-m.neutral <- function(ab, site, region, spp, family, ...){
-neutral <- glmer(ab ~ 1 +
-                               (1|spp) +
-                               (1|spp:region) + (1|spp:site),
-                               family=family,
-                                control=glmerControl(optimizer="bobyqa", 
-                                                     optCtrl=list(maxfun=5e7)))
-       return(neutral)#, 
+m.neutral <- function(ab, site, region, spp, ...){
+    neutral <- glmer(ab ~ 1 +
+                         (1|spp) +
+                         (1|spp:region) + (1|spp:site), ...)
+    return(neutral)#, 
 }
 
 
 ## 6. Null hypothesis
 # Null model in which species and sites are independent random intercepts
-m.null <- function(ab, site, region, spp, family, ...){
-      null <- glmer(ab ~ 1 + (1|region) + (1|spp) + (1|site),
-                    family=family,
-                   control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
-      return(null)
+m.null <- function(ab, site, region, spp, ...){
+    null <- glmer(ab ~ 1 + (1|region) + (1|spp) + (1|site), ...)
+    return(null)
 }
 
 
@@ -428,30 +478,67 @@ Now, we will adjust the models to different sets of data.
 
 ```{r models det rt}
 # Niche and neutral dynamics
-nineu.det.rt <- m.full(ab=all.data$det, trait=all.data$trait, grad=all.data$grad,
-                       site=all.data$site, region=all.data$region, 
-                       spp=all.data$spp, "poisson")
-# Niche and neutral dynamics without species traits
-envneu.det <- m.full2(ab=all.data$det, grad=all.data$grad,
-                       site=all.data$site, region=all.data$region, 
-                       spp=all.data$spp, "poisson")
-# Niche dynamics
-niche.det.rt <- m.niche(ab=all.data$det, trait=all.data$trait, grad=all.data$grad,
-                       site=all.data$site, 
-                       spp=all.data$spp, "poisson")
-# Niche dynamics
-env.det <- m.env(ab=all.data$det, grad=all.data$grad,
+## With traits
+nineu.det.rt <- m.full(ab=all.data$det,
+                       trait=all.data$trait,
+                       grad=all.data$grad,
                        site=all.data$site,
-                       spp=all.data$spp, "poisson")
+                       region=all.data$region, 
+                       spp=all.data$spp,
+                       family="poisson",
+                       control=glmerControl(optimizer="bobyqa", 
+                                            optCtrl=list(maxfun=5e7))
+                       )
+## Without traits
+envneu.det <- m.full2(ab=all.data$det,
+                      grad=all.data$grad,
+                      site=all.data$site,
+                      region=all.data$region, 
+                      spp=all.data$spp,
+                      family="poisson",
+                      control=glmerControl(optimizer="bobyqa", 
+                                           optCtrl=list(maxfun=5e6))
+                      )
+# Niche dynamics
+## With traits
+niche.det.rt <- m.niche(ab=all.data$det,
+                        trait=all.data$trait,
+                        grad=all.data$grad,
+                        site=all.data$site, 
+                        spp=all.data$spp,
+                        family="poisson",
+                        control=glmerControl(optimizer="bobyqa", 
+                                             optCtrl=list(maxfun=5e7))
+                        )
+                        
+# W/o traits
+env.det <- m.env(ab=all.data$det,
+                 grad=all.data$grad,
+                 site=all.data$site,
+                 spp=all.data$spp,
+                 family="poisson",
+                 control=glmerControl(optimizer="bobyqa", 
+                                      optCtrl=list(maxfun=5e7))
+                 )
 
 # Neutral dynamics
 neu.det <- m.neutral(ab=all.data$det,
-                       site=all.data$site, region=all.data$region, 
-                       spp=all.data$spp, "poisson")
+                     site=all.data$site,
+                     region=all.data$region, 
+                     spp=all.data$spp,
+                     family="poisson",
+                     control=glmerControl(optimizer="bobyqa", 
+                                          optCtrl=list(maxfun=5e7))
+                     )
 # Null hypothesis
 null.det <- m.null(ab=all.data$det, 
-                    site=all.data$site, region=all.data$region, 
-                    spp=all.data$spp, "poisson")
+                   site=all.data$site,
+                   region=all.data$region, 
+                   spp=all.data$spp,
+                   family="poisson",
+                   control=glmerControl(optimizer="bobyqa", 
+                                        optCtrl=list(maxfun=5e7))
+                   )
 
 # AIC for each model
 AICctab(nineu.det.rt, envneu.det, niche.det.rt, env.det, neu.det, null.det)
@@ -462,15 +549,29 @@ AICctab(nineu.det.rt, envneu.det, niche.det.rt, env.det, neu.det, null.det)
 
 ```{r models det wt}
 # Niche and neutral dynamics
-nineu.det.wt <- m.full(ab=all.data$det, trait=all.data$trait.wr, grad=all.data$grad,
-                       site=all.data$site, region=all.data$region, 
-                       spp=all.data$spp, "poisson")
+nineu.det.wt <- m.full(ab=all.data$det,
+                       trait=all.data$trait.wr,
+                       grad=all.data$grad,
+                       site=all.data$site,
+                       region=all.data$region, 
+                       spp=all.data$spp,
+                       family="poisson",
+                       control=glmerControl(optimizer="bobyqa", 
+                                            optCtrl=list(maxfun=5e7))
+                       )
 
 # Niche dynamics 
 ###### SOMETIMES CONVERGENCE WARNINGS HERE :( #####
-niche.det.wt <- m.niche(ab=all.data$det, trait=all.data$trait.wr, grad=all.data$grad,
-                       site=all.data$site, #region=all.data$region, 
-                       spp=all.data$spp, "poisson")
+niche.det.wt <- m.niche(ab=all.data$det,
+                        trait=all.data$trait.wr,
+                        grad=all.data$grad,
+                        site=all.data$site,
+                        ##region=all.data$region, 
+                        spp=all.data$spp,
+                        family="poisson",
+                        control=glmerControl(optimizer="bobyqa", 
+                                             optCtrl=list(maxfun=5e7))
+                        )
 
 # AIC for each model
 AICctab(nineu.det.wt, envneu.det, niche.det.wt, env.det, neu.det, null.det)
@@ -481,34 +582,54 @@ AICctab(nineu.det.wt, envneu.det, niche.det.wt, env.det, neu.det, null.det)
 
 ```{r models sto rt}
 # Niche and neutral dynamics
-nineu.sto.rt <- m.full(ab=all.data$sto, trait=all.data$trait, grad=all.data$grad,
-                       site=all.data$site, region=all.data$region, 
-                       spp=all.data$spp, "poisson")
+nineu.sto.rt <- m.full(ab=all.data$sto,
+                       trait=all.data$trait,
+                       grad=all.data$grad,
+                       site=all.data$site,
+                       region=all.data$region, 
+                       spp=all.data$spp,
+                       family="poisson",
+                       control=glmerControl(optimizer="bobyqa", 
+                                            optCtrl=list(maxfun=5e7)))
 
 # Niche and neutral dynamics without species traits
 envneu.sto <- m.full2(ab=all.data$sto, grad=all.data$grad,
-                       site=all.data$site, region=all.data$region, 
-                       spp=all.data$sp, "poisson")
+                      site=all.data$site,
+                      region=all.data$region, 
+                      spp=all.data$sp,
+                      family="poisson",
+                      control=glmerControl(optimizer="bobyqa", 
+                                           optCtrl=list(maxfun=5e7)))
 
 # Niche dynamics
 niche.sto.rt <- m.niche(ab=all.data$sto, trait=all.data$trait, grad=all.data$grad,
-                       site=all.data$site, #region=all.data$region, 
-                       spp=all.data$sp, "poisson")
+                        site=all.data$site,
+                        ##region=all.data$region, 
+                        spp=all.data$sp,
+                        family="poisson",
+                        control=glmerControl(optimizer="bobyqa", 
+                                             optCtrl=list(maxfun=5e7)))
 
 # Niche dynamics
 env.sto <- m.env(ab=all.data$sto, grad=all.data$grad,
-                       site=all.data$site, #region=all.data$region, 
-                       spp=all.data$sp, "poisson")
+                 site=all.data$site,
+                 ##region=all.data$region, 
+                 spp=all.data$sp,
+                 family="poisson",
+                 control=glmerControl(optimizer="bobyqa", 
+                                      optCtrl=list(maxfun=5e7)))
 
 # Neutral dynamics
-###### CONVERGENCE WARNINGS HERE :( #####
+###### CONVERGENCE WARNINGS with bobyqa#####
 neu.sto <- m.neutral(ab=all.data$sto,
-                       site=all.data$site, region=all.data$region, 
-                       spp=all.data$sp, "poisson")
-# Null hypothesis
+                     site=all.data$site,
+                     region=all.data$region, 
+                     spp=all.data$sp,
+                     family="poisson")
+## Null hypothesis
 null.sto <- m.null(ab=all.data$sto, 
                     site=all.data$site, region=all.data$region, 
-                    spp=all.data$sp, "poisson")
+                    spp=all.data$sp, family="poisson")
 
 # AIC for each model
 AICctab(nineu.sto.rt, envneu.sto, niche.sto.rt, env.sto, neu.sto, null.sto)
@@ -524,7 +645,18 @@ AICctab(nineu.sto.rt, envneu.sto, niche.sto.rt, env.sto, neu.sto, null.sto)
 
 ### 4. Addressing main criticisms of our framework
 
-We now will compare results from model selection of the different scenarios we created. We consider the model with lowest AIC (Akaike Information Criterion) as the model that best explains the community data. We will depict all best models in terms of their adjusted $R^{2}$. Adjusted $R^{2}$, as they measure the relative importance of fixed and random effects in the model, are used here a proxy of correspondence of community processes to terms in the model. Therefore, conditional $R^{2}$ represents the influence of niche dynamics whereas marginal $R^{2}$ is partitioned into each random term and can represent either niche (in the case of the term 1+grad|spp and 1+grad|site), neutral dynamics (for 1|spp:mountain and 1|spp:site) or idiosyncratic effects of species (1|spp).  
+We now will compare results from model selection of the different
+scenarios we created. We consider the model with lowest AIC (Akaike
+Information Criterion) as the model that best explains the community
+data. We will depict all best models in terms of their adjusted
+$R^{2}$. Adjusted $R^{2}$, as they measure the relative importance of
+fixed and random effects in the model, are used here a proxy of
+correspondence of community processes to terms in the
+model. Therefore, conditional $R^{2}$ represents the influence of
+niche dynamics whereas marginal $R^{2}$ is partitioned into each
+random term and can represent either niche (in the case of the term
+1+grad|spp and 1+grad|site), neutral dynamics (for 1|spp:mountain and
+1|spp:site) or idiosyncratic effects of species (1|spp).
 
 ```{r r-squared table}
 # Functions to calculate R-squared for each random effect, each function fot each possible best model
@@ -533,155 +665,155 @@ We now will compare results from model selection of the different scenarios we c
 
 ### Funtion for the full model
 r2.full <- function(model, ...){
-# Function to calculate the null model, model with all random terms 
-best.null <- function(model, ...) {
-parens <- function(x) paste0("(",x,")")
-onlyBars <- function(form) reformulate(sapply(findbars(form),
-                                              function(x)  parens(deparse(x))),
-                                              response=".")
-onlyBars(formula(model))
-best.null <- update(model,onlyBars(formula(model)))
-return(best.null)
-}
-# Calculates null model
-m0 <- best.null(model)
-# Variance for fixed effects
-VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
-## Variance for slope/intercept random effects
-X <- model.matrix(model)
-n <- nrow(X)
-Z <- X[, c("(Intercept)","grad")]
-sigma <- VarCorr(model)$site
-VarSite <- sum(diag(Z %*% sigma %*% t(Z)))/n
-## Variance for each component of random effects
-VarR <-  c(VarSite,
-             VarCorr(model)$`spp:site`[1],
-             VarCorr(model)$`spp:region`[1],
-           VarCorr(model)$`spp`[1])
-names(VarR) <- c("site", "spp:site", "spp:region", "spp")
-# Denominator for R2GLMM formula works for Poisson distribution only
-deno <- (VarF + sum(VarR) + #pi^2/3
+    ## Function to calculate the null model, model with all random terms 
+    best.null <- function(model, ...) {
+        parens <- function(x) paste0("(",x,")")
+        onlyBars <- function(form) reformulate(sapply(findbars(form),
+                                                      function(x)  parens(deparse(x))),
+                                               response=".")
+        onlyBars(formula(model))
+        best.null <- update(model,onlyBars(formula(model)))
+        return(best.null)
+    }
+    ## Calculates null model
+    m0 <- best.null(model)
+    ## Variance for fixed effects
+    VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
+    ## Variance for slope/intercept random effects
+    X <- model.matrix(model)
+    n <- nrow(X)
+    Z <- X[, c("(Intercept)","grad")]
+    sigma <- VarCorr(model)$site
+    VarSite <- sum(diag(Z %*% sigma %*% t(Z)))/n
+    ## Variance for each component of random effects
+    VarR <-  c(VarSite,
+               VarCorr(model)$`spp:site`[1],
+               VarCorr(model)$`spp:region`[1],
+               VarCorr(model)$`spp`[1])
+    names(VarR) <- c("site", "spp:site", "spp:region", "spp")
+    ## Denominator for R2GLMM formula works for Poisson distribution only
+    deno <- (VarF + sum(VarR) + #pi^2/3
              log(1 + 1/exp(as.numeric(fixef(m0)))))
-# R2GLMM(m) - marginal R2GLMM 
-r2f <- VarF/deno
-# R2GLMM(c) - conditional R2GLMM for full model
-r2t <- (VarF + sum(VarR))/deno
-# R2 random effects only
-r2rand <- r2t-r2f
-## R2 Residuals
-r2res <- 1-r2t
-## Partitioning R2 GLMM for each random effect
-r2rand.part <- VarR/deno
-r2.tab <- data.frame(component=c("conditional", "fixed", "random",
+    ## R2GLMM(m) - marginal R2GLMM 
+    r2f <- VarF/deno
+    ## R2GLMM(c) - conditional R2GLMM for full model
+    r2t <- (VarF + sum(VarR))/deno
+                                        # R2 random effects only
+    r2rand <- r2t-r2f
+    ## R2 Residuals
+    r2res <- 1-r2t
+    ## Partitioning R2 GLMM for each random effect
+    r2rand.part <- VarR/deno
+    r2.tab <- data.frame(component=c("conditional", "fixed", "random",
                                      names(VarR)),
-                     R2=c(r2t,r2f,r2rand, r2rand.part),
-                     type=c("all", "niche", "all.random", "niche", "neutral", "neutral", "idiosyncratic"))
-r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
+                         R2=c(r2t,r2f,r2rand, r2rand.part),
+                         type=c("all", "niche", "all.random", "niche", "neutral", "neutral", "idiosyncratic"))
+    r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
     names(r2.partition)[2] <- "R2.partition"
     R2 <- r2.tab$R2
     names(R2) <- r2.tab$component
-return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
+    return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
 }
 
 ## Function for full2 model
 r2.full2 <- function(model, ...){
-# Function to calculate the null model, model with all random terms 
-best.null <- function(model, ...) {
-parens <- function(x) paste0("(",x,")")
-onlyBars <- function(form) reformulate(sapply(findbars(form),
-                                              function(x)  parens(deparse(x))),
-                                              response=".")
-onlyBars(formula(model))
-best.null <- update(model,onlyBars(formula(model)))
-return(best.null)
-}
-# Calculates null model
-m0 <- best.null(model)
-# Variance for fixed effects
-VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
-## Variance for slope/intercept random effects
-### site    
-X <- model.matrix(model)
-n <- nrow(X)
-Z <- X[, c("(Intercept)","grad")]
-sigma.site <- VarCorr(model)$site
-VarSite <- sum(diag(Z %*% sigma.site %*% t(Z)))/n
-## Variance for slope/intercept random effects
-### spp
-sigma.spp <- VarCorr(model)$spp
-VarSpp <- sum(diag(Z %*% sigma.spp %*% t(Z)))/n
-## Variance for each component of random effects
-VarR <-  c(VarSite, VarSpp,
-             VarCorr(model)$`spp:site`[1],
-             VarCorr(model)$`spp:region`[1])
-names(VarR) <- c("site", "spp", "spp:site", "spp:region")
-# Denominator for R2GLMM formula works for Poisson distribution only
-deno <- (VarF + sum(VarR) + #pi^2/3
+    ## Function to calculate the null model, model with all random terms 
+    best.null <- function(model, ...) {
+        parens <- function(x) paste0("(",x,")")
+        onlyBars <- function(form) reformulate(sapply(findbars(form),
+                                                      function(x)  parens(deparse(x))),
+                                               response=".")
+        onlyBars(formula(model))
+        best.null <- update(model,onlyBars(formula(model)))
+        return(best.null)
+    }
+    ## Calculates null model
+    m0 <- best.null(model)
+    ## Variance for fixed effects
+    VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
+    ## Variance for slope/intercept random effects
+    ## site    
+    X <- model.matrix(model)
+    n <- nrow(X)
+    Z <- X[, c("(Intercept)","grad")]
+    sigma.site <- VarCorr(model)$site
+    VarSite <- sum(diag(Z %*% sigma.site %*% t(Z)))/n
+    ## Variance for slope/intercept random effects
+    ## spp
+    sigma.spp <- VarCorr(model)$spp
+    VarSpp <- sum(diag(Z %*% sigma.spp %*% t(Z)))/n
+    ## Variance for each component of random effects
+    VarR <-  c(VarSite, VarSpp,
+               VarCorr(model)$`spp:site`[1],
+               VarCorr(model)$`spp:region`[1])
+    names(VarR) <- c("site", "spp", "spp:site", "spp:region")
+                                        # Denominator for R2GLMM formula works for Poisson distribution only
+    deno <- (VarF + sum(VarR) + #pi^2/3
              log(1 + 1/exp(as.numeric(fixef(m0)))))
-# R2GLMM(m) - marginal R2GLMM 
-r2f <- VarF/deno
-# R2GLMM(c) - conditional R2GLMM for full model
-r2t <- (VarF + sum(VarR))/deno
-# R2 random effects only
-r2rand <- r2t-r2f
-## R2 Residuals
-r2res <- 1-r2t
-## Partitioning R2 GLMM for each random effect
-r2rand.part <- VarR/deno
-r2.tab <- data.frame(component=c("conditional", "fixed", "random",
+                                        # R2GLMM(m) - marginal R2GLMM 
+    r2f <- VarF/deno
+                                        # R2GLMM(c) - conditional R2GLMM for full model
+    r2t <- (VarF + sum(VarR))/deno
+                                        # R2 random effects only
+    r2rand <- r2t-r2f
+    ## R2 Residuals
+    r2res <- 1-r2t
+    ## Partitioning R2 GLMM for each random effect
+    r2rand.part <- VarR/deno
+    r2.tab <- data.frame(component=c("conditional", "fixed", "random",
                                      names(VarR)),
-                     R2=c(r2t,r2f,r2rand, r2rand.part),
-                     type=c("all", "niche", "all.random", "niche",  "niche", "neutral", "neutral"))
-r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
-names(r2.partition)[2] <- "R2.partition"
+                         R2=c(r2t,r2f,r2rand, r2rand.part),
+                         type=c("all", "niche", "all.random", "niche",  "niche", "neutral", "neutral"))
+    r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
+    names(r2.partition)[2] <- "R2.partition"
     R2 <- r2.tab$R2
     names(R2) <- r2.tab$component
-return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
+    return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
 }
 
 ## Funtion for neutral model 
 r2.neutral <- function(model, ...){
-# Function to calculate the null model, model with all random terms 
-best.null <- function(model, ...) {
-parens <- function(x) paste0("(",x,")")
-onlyBars <- function(form) reformulate(sapply(findbars(form),
-                                              function(x)  parens(deparse(x))),
-                                              response=".")
-onlyBars(formula(model))
-best.null <- update(model,onlyBars(formula(model)))
-return(best.null)
-}
-# Calculates null model
-m0 <- best.null(model)
-# Variance for fixed effects
-VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
-## Variance for each component of random effects
-VarR <-  c(  VarCorr(model)$`spp:site`[1],
-           VarCorr(model)$`spp:region`[1],
-           VarCorr(model)$`spp`[1])
-names(VarR) <- c("spp:site", "spp:region", "spp")
-# Denominator for R2GLMM formula works for Poisson distribution only
-deno <- (VarF + sum(VarR) + #pi^2/3
+    ## Function to calculate the null model, model with all random terms 
+    best.null <- function(model, ...) {
+        parens <- function(x) paste0("(",x,")")
+        onlyBars <- function(form) reformulate(sapply(findbars(form),
+                                                      function(x)  parens(deparse(x))),
+                                               response=".")
+        onlyBars(formula(model))
+        best.null <- update(model,onlyBars(formula(model)))
+        return(best.null)
+    }
+    ## Calculates null model
+    m0 <- best.null(model)
+    ## Variance for fixed effects
+    VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
+    ## Variance for each component of random effects
+    VarR <-  c(  VarCorr(model)$`spp:site`[1],
+               VarCorr(model)$`spp:region`[1],
+               VarCorr(model)$`spp`[1])
+    names(VarR) <- c("spp:site", "spp:region", "spp")
+    ## Denominator for R2GLMM formula works for Poisson distribution only
+    deno <- (VarF + sum(VarR) + #pi^2/3
              log(1 + 1/exp(as.numeric(fixef(m0)))))
-# R2GLMM(m) - marginal R2GLMM 
-r2f <- VarF/deno
-# R2GLMM(c) - conditional R2GLMM for full model
-r2t <- (VarF + sum(VarR))/deno
-# R2 random effects only
-r2rand <- r2t-r2f
-## R2 Residuals
-r2res <- 1-r2t
-## Partitioning R2 GLMM for each random effect
-r2rand.part <- VarR/deno
-r2.tab <- data.frame(component=c("conditional", "fixed", "random",
+    ## R2GLMM(m) - marginal R2GLMM 
+    r2f <- VarF/deno
+    ## R2GLMM(c) - conditional R2GLMM for full model
+    r2t <- (VarF + sum(VarR))/deno
+    ## R2 random effects only
+    r2rand <- r2t-r2f
+    ## R2 Residuals
+    r2res <- 1-r2t
+    ## Partitioning R2 GLMM for each random effect
+    r2rand.part <- VarR/deno
+    r2.tab <- data.frame(component=c("conditional", "fixed", "random",
                                      names(VarR)),
-                     R2=c(r2t,r2f,r2rand, r2rand.part),
-                     type=c("all", "niche", "all.random", "neutral",  "neutral", "idiosyncratic"))
-r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
-names(r2.partition)[2] <- "R2.partition"
+                         R2=c(r2t,r2f,r2rand, r2rand.part),
+                         type=c("all", "niche", "all.random", "neutral",  "neutral", "idiosyncratic"))
+    r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
+    names(r2.partition)[2] <- "R2.partition"
     R2 <- r2.tab$R2
     names(R2) <- r2.tab$component
-return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
+    return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
 }
 ```
 
@@ -705,27 +837,46 @@ row.names(table1) <- c("Deterministic community w/ right traits",
 kable(table1)
 ```
 
-For communities built by known niche dynamics conditional $R^{2}$ value is composed basically by fixed effects, representing niche dynamics. For communities built by known neutral dynamics, conditional $R^{2}$ is built by random effects, specially the effect represented by the term (1|region:spp), which represents of limited dispersal of species within regions.
+For communities built by known niche dynamics conditional $R^{2}$
+value is composed basically by fixed effects, representing niche
+dynamics. For communities built by known neutral dynamics, conditional
+$R^{2}$ is built by random effects, specially the effect represented
+by the term (1|region:spp), which express limited dispersal of
+species within regions.
 
 #### 4.2. Are random effects only capturing neutral dynamics or uninformed species traits are inflating random effects? 
 
-In order to examine how random effects reflect uninformed traits, we compare the results of the selected model from deterministic communities with right and wrong traits. 
+In order to examine how random effects reflect uninformed traits, we
+compare the results of the selected model from deterministic
+communities with right and wrong traits.
+
 ```{r test 4.2 right-wrong}
 #Calculating R2
-r2.det.rt
-r2.det.wt <- r2.full2(envneu.det)$R2
+## PI: comentei as duas linhas a seguir e adicionei a ultima, que me parece o comando correto, confere?
+## r2.det.rt
+# r2.det.wt <- r2.full2(envneu.det)$R2
+## Nao deveria ser
+r2.det.wt <- r2.full(nineu.det.wt)$R2
 
 ## Creating table
 table2 <- as.data.frame(bind_rows(r2.det.rt, r2.det.wt))
 row.names(table2) <- c("Deterministic community w/ right traits", 
-                    "Stochastic community w/ right traits")
+                    "Deterministic community w/ wrong traits")
 ```
 
 ```{r table2, echo=FALSE, results='asis'}
 kable(table2)
 ```
 
-Only looking into the $R^{2}$ conditional values, one cannot examine difference between deterministic communities built by uninformative and informative species traits. However, by examining the partition $R^{2}$ values, one can detect if traits used in the model are actually influencing species abundances. Uninformative traits inflate marginal $R^{2}$ because of the importance of the term (1|spp:site) and minimizes the influence of the trait-environment correlation. When traits are informative and niche dynamics are preponderant, $R^{2}$ for fixed effects should be particularly high. 
+Only looking into the $R^{2}$ conditional values, one cannot examine
+difference between deterministic communities built by uninformative
+and informative species traits. However, by examining the partition
+$R^{2}$ values, one can detect if traits used in the model are
+actually influencing species abundances. Uninformative traits inflate
+marginal $R^{2}$ because of the importance of the term (1|spp:site)
+and minimizes the influence of the trait-environment correlation. When
+traits are informative and niche dynamics are preponderant, $R^{2}$
+for fixed effects should be particularly high.
 
 
 
