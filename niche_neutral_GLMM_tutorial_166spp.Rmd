@@ -118,6 +118,7 @@ library(ggplot2)
 library(dplyr)
 library(MASS)
 library(knitr)
+source("functions.R")
 ```
 
 Here we specify the random number generator seed:
@@ -427,66 +428,13 @@ all.data %>%
 
 First, we create simple functions to perform model selection. Although
 the logic is generic, functions below are specific to run this
-example. We create a function for each of our hypothesis.
-
-```{r packages model selection}
-
-## 1. Hypothesis of niche and neutral dynamics
-m.full <- function(ab, trait, grad, site, region, spp, ...){
-    niche.neutral <- glmer(ab ~ trait + grad + I(grad^2) + 
-                               trait:grad + trait:I(grad^2) + 
-                               (1|spp) +
-                               (1|spp:region) + (1|spp:site) + (1+grad|site), ...)
-    return(niche.neutral)#, 
-}
-
-## 2. Hypothesis of niche and neutral dynamics without species traits
-m.full2 <- function(ab, grad, site, region, spp, ...){
-    env.neutral <- glmer(ab ~ grad + I(grad^2) + 
-                             (1|spp:region) + (1|spp:site) +
-                             (1+grad|spp) + (1+grad|site), ...)
-    return(env.neutral)
-}
-
-## 3. Solely niche dynamics
-m.niche <- function(ab, trait, grad, site, spp, ...){
-    niche <- glmer(ab ~ trait + grad + I(grad^2) + 
-                       trait:grad + trait:I(grad^2) + 
-                       (1|spp) +
-                       (1+grad|site), ...)
-    return(niche)#, 
-}
+example. We created a function for each of our hypothesis (see file
+'functions.R'). 
 
 
-## 4. Solely niche dynamics without species trait (including term to catch wrong traits)
-m.env <- function(ab, grad, site, spp, ...){
-    env <- glmer(ab ~ grad + I(grad^2) 
-                 + (1+grad|spp) + (1+grad|site), ...)
-    return(env)#, 
-}
-
-## 5. Solely neutral dynamics
-## PI: Neste e nos demais sem nicho não falta o termo 1|site ?
-## Se sim tem que refazer estes, e também o cálculo do R2
-m.neutral <- function(ab, site, region, spp, ...){
-    neutral <- glmer(ab ~ 1 +
-                         (1|spp) +
-                         (1|spp:region) + (1|spp:site), ...)
-    return(neutral)#, 
-}
-
-
-## 6. Null hypothesis
-# Null model in which species and sites are independent random intercepts
-m.null <- function(ab, site, region, spp, ...){
-    null <- glmer(ab ~ 1 + (1|region) + (1|spp) + (1|site), ...)
-    return(null)
-}
-
-
-```
-
-Now, we will adjust the models to different sets of data. 
+In the following sections we fit the models to different sets of data
+with these functions. Control parameters were adjusted to avoid
+convergence issues.
 
 ##### Deterministic community w/ right traits, from poisson sample
 
@@ -673,181 +621,22 @@ random term and can represent either niche (in the case of the term
 1+grad|spp and 1+grad|site), neutral dynamics (for 1|spp:mountain and
 1|spp:site) or idiosyncratic effects of species (1|spp).
 
-```{r r-squared table}
-# Functions to calculate R-squared for each random effect, each function fot each possible best model
-# adapted from Nakagawa
-# Works only for Poisson GLMMs
-
-### Funtion for the full model
-## added 'null.model' argument and '...' argument to the fit of the null model (to allow optmization control)
-r2.full <- function(model, null.model, ...){
-    ## Function to calculate the null model, model with all random terms
-    best.null <- function(model) {
-        parens <- function(x) paste0("(",x,")")
-        onlyBars <- function(form) reformulate(sapply(findbars(form),
-                                                      function(x)  parens(deparse(x))),
-                                               response=".")
-        onlyBars(formula(model))
-        best.null <- update(model,onlyBars(formula(model)), ...)
-        return(best.null)
-    }
-    ## Calculates null model
-    if(missing(null.model))
-       m0 <- best.null(model)
-    else
-        m0 <- null.model
-    ## Variance for fixed effects
-    VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
-    ## Variance for slope/intercept random effects
-    X <- model.matrix(model)
-    n <- nrow(X)
-    Z <- X[, c("(Intercept)","grad")]
-    sigma <- VarCorr(model)$site
-    VarSite <- sum(diag(Z %*% sigma %*% t(Z)))/n
-    ## Variance for each component of random effects
-    VarR <-  c(VarSite,
-               VarCorr(model)$`spp:site`[1],
-               VarCorr(model)$`spp:region`[1],
-               VarCorr(model)$`spp`[1])
-    names(VarR) <- c("site", "spp:site", "spp:region", "spp")
-    ## Denominator for R2GLMM formula works for Poisson distribution only
-    deno <- (VarF + sum(VarR) + #pi^2/3
-             log(1 + 1/exp(as.numeric(fixef(m0)))))
-    ## R2GLMM(m) - marginal R2GLMM 
-    r2f <- VarF/deno
-    ## R2GLMM(c) - conditional R2GLMM for full model
-    r2t <- (VarF + sum(VarR))/deno
-                                        # R2 random effects only
-    r2rand <- r2t-r2f
-    ## R2 Residuals
-    r2res <- 1-r2t
-    ## Partitioning R2 GLMM for each random effect
-    r2rand.part <- VarR/deno
-    r2.tab <- data.frame(component=c("conditional", "fixed", "random",
-                                     names(VarR)),
-                         R2=c(r2t,r2f,r2rand, r2rand.part),
-                         type=c("all", "niche", "all.random", "niche", "neutral", "neutral", "idiosyncratic"))
-    r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
-    names(r2.partition)[2] <- "R2.partition"
-    R2 <- r2.tab$R2
-    names(R2) <- r2.tab$component
-    return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
-}
-
-## Function for full2 model
-## added 'null.model' argument and '...' argument to the fit of the null model (to allow optmization control)
-r2.full2 <- function(model, null.model, ...){
-    ## Function to calculate the null model, model with all random terms 
-    best.null <- function(model) {
-        parens <- function(x) paste0("(",x,")")
-        onlyBars <- function(form) reformulate(sapply(findbars(form),
-                                                      function(x)  parens(deparse(x))),
-                                               response=".")
-        onlyBars(formula(model))
-        best.null <- update(model,onlyBars(formula(model)), ...)
-        return(best.null)
-    }
-    ## Calculates null model
-    if(missing(null.model))
-        m0 <- best.null(model)
-    else
-        m0 <- null.model
-    ## Variance for fixed effects
-    VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
-    ## Variance for slope/intercept random effects
-    ## site    
-    X <- model.matrix(model)
-    n <- nrow(X)
-    Z <- X[, c("(Intercept)","grad")]
-    sigma.site <- VarCorr(model)$site
-    VarSite <- sum(diag(Z %*% sigma.site %*% t(Z)))/n
-    ## Variance for slope/intercept random effects
-    ## spp
-    sigma.spp <- VarCorr(model)$spp
-    VarSpp <- sum(diag(Z %*% sigma.spp %*% t(Z)))/n
-    ## Variance for each component of random effects
-    VarR <-  c(VarSite, VarSpp,
-               VarCorr(model)$`spp:site`[1],
-               VarCorr(model)$`spp:region`[1])
-    names(VarR) <- c("site", "spp", "spp:site", "spp:region")
-                                        # Denominator for R2GLMM formula works for Poisson distribution only
-    deno <- (VarF + sum(VarR) + #pi^2/3
-             log(1 + 1/exp(as.numeric(fixef(m0)))))
-                                        # R2GLMM(m) - marginal R2GLMM 
-    r2f <- VarF/deno
-                                        # R2GLMM(c) - conditional R2GLMM for full model
-    r2t <- (VarF + sum(VarR))/deno
-                                        # R2 random effects only
-    r2rand <- r2t-r2f
-    ## R2 Residuals
-    r2res <- 1-r2t
-    ## Partitioning R2 GLMM for each random effect
-    r2rand.part <- VarR/deno
-    r2.tab <- data.frame(component=c("conditional", "fixed", "random",
-                                     names(VarR)),
-                         R2=c(r2t,r2f,r2rand, r2rand.part),
-                         type=c("all", "niche", "all.random", "niche",  "niche", "neutral", "neutral"))
-    r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
-    names(r2.partition)[2] <- "R2.partition"
-    R2 <- r2.tab$R2
-    names(R2) <- r2.tab$component
-    return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
-}
-
-## Funtion for neutral model
-## added 'null.model' argument and '...' argument to the fit of the null model (to allow optmization control)
-r2.neutral <- function(model, null.model, ...){
-    ## Function to calculate the null model, model with all random terms 
-    best.null <- function(model) {
-        parens <- function(x) paste0("(",x,")")
-        onlyBars <- function(form) reformulate(sapply(findbars(form),
-                                                      function(x)  parens(deparse(x))),
-                                               response=".")
-        onlyBars(formula(model))
-        best.null <- update(model,onlyBars(formula(model)), ...)
-        return(best.null)
-    }
-    ## Calculates null model
-    if(missing(null.model))
-       m0 <- best.null(model)
-    else
-        m0 <- null.model
-    ## Variance for fixed effects
-    VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
-    ## Variance for each component of random effects
-    VarR <-  c(  VarCorr(model)$`spp:site`[1],
-               VarCorr(model)$`spp:region`[1],
-               VarCorr(model)$`spp`[1])
-    names(VarR) <- c("spp:site", "spp:region", "spp")
-    ## Denominator for R2GLMM formula works for Poisson distribution only
-    deno <- (VarF + sum(VarR) + #pi^2/3
-             log(1 + 1/exp(as.numeric(fixef(m0)))))
-    ## R2GLMM(m) - marginal R2GLMM 
-    r2f <- VarF/deno
-    ## R2GLMM(c) - conditional R2GLMM for full model
-    r2t <- (VarF + sum(VarR))/deno
-    ## R2 random effects only
-    r2rand <- r2t-r2f
-    ## R2 Residuals
-    r2res <- 1-r2t
-    ## Partitioning R2 GLMM for each random effect
-    r2rand.part <- VarR/deno
-    r2.tab <- data.frame(component=c("conditional", "fixed", "random",
-                                     names(VarR)),
-                         R2=c(r2t,r2f,r2rand, r2rand.part),
-                         type=c("all", "niche", "all.random", "neutral",  "neutral", "idiosyncratic"))
-    r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
-    names(r2.partition)[2] <- "R2.partition"
-    R2 <- r2.tab$R2
-    names(R2) <- r2.tab$component
-    return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
-}
-```
+We adapted scripts from Johnson (2014) to calculate marginal and
+conditional $R^{2}$ of each models, and also the enhanced agreement
+repeatibility (Stofel et al 2107), or the ratio of the intra-class
+variance for a given random factor and the total variance estimated by
+the models, including fixed-effect variances. These functions are
+available in the script 'functions.R', but applies only to the models
+fitted in this tutorial. For generic functions please see packages
+(rptR and MuMIn).
 
 
 #### 4.1. Are fixed and random effects actually capturing niche and neutral dynamics?
 
-In order to address this question, we compare results of the selected model for deterministic and stochastic communities with traits strongly correlated with species abundance sampled from Poisson distribution.
+In order to address this question, we compare results of the selected
+model for deterministic and stochastic communities with traits
+strongly correlated with species abundance sampled from Poisson
+distribution.
 
 ```{r test 4.1}
 #Calculating R2
