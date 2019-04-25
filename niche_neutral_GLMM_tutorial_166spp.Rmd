@@ -59,9 +59,12 @@ meta-communities in our model selection framework.
 
 In order to address main criticisms of our framework, we analyze into three scenarios:
 
-* Deterministic community with traits strongly correlated with species abundance from Poisson sample
-* Deterministic community with traits poorly correlated with species abundance from Poisson sample
-* Stochastic community with traits strongly correlated with species abundance from Poisson sample
+* Deterministic community with traits strongly correlated with species
+  abundance from Poisson sample
+* Deterministic community with traits poorly correlated with species
+  abundance from Poisson sample
+* Stochastic community with traits strongly correlated with species
+  abundance from Poisson sample
 
 <!-- Tiramos o: Stochastic community with right traits from Negative Binomial sample--> 
 
@@ -128,11 +131,11 @@ set.seed(42)
 ```
 
 To evaluate our methods, we generate the meta-community data. Part of
-the code used here is adapted from <b> <a
-href="http://rstudio-pubs-static.s3.amazonaws.com/159425_80725873417e42fdb13821c10a198281.html">
-Sokol's MCSim tutorial </a> </b>. 
-To replicate our fern data set, we simulated a metaccomunity of 166 species
-over in 10 in each of three regions (mountain chains). 
+the code used here is adapted from 
+[http://rstudio-pubs-static.s3.amazonaws.com/159425_80725873417e42fdb13821c10a198281.html](Sokol's MCSim tutorial).
+To replicate our fern data set, we
+simulated a metaccomunity of 166 species over in 10 in each of three
+regions (mountain chains).
 
 For both deterministic and stochastic scenarios, we simulate 10
 different meta-communities until time-step 100 and then take the mean
@@ -149,7 +152,7 @@ Nspp <- 166
 
 ## Sites attributes ##
 ## Here are the xy-coordinates of sites: 3 regions with 10 sites each
-## Distances between regions is an order of amgnitude distance bewteen sites within regions
+## Distances between regions is an order of magnitude distance bewteen sites within regions
 sites <- expand.grid(x = seq(0,120, length=Nregions), y=seq(1,5, length=Nsites/Nregions))
 sites$x <- jitter(sites$x)
 sites$y <- jitter(sites$y)
@@ -391,16 +394,8 @@ as expected:
 
 ```{r checking abundance x grad plots}
 ## A sample of 9 species, a panel for each region
-## Niche
 index <- paste("sp",sample(1:nlevels(all.data$spp),9),sep=".")
-## all.data %>%
-##     filter(spp%in%index) %>%
-##     ggplot(aes(grad, det)) + geom_line(aes(colour=spp)) +
-##     scale_y_log10()  +
-##     facet_wrap(~region) +
-##     labs(x="Environmental gradient", y="Species abundance",
-##         title="Deterministic community from Poisson sample")+
-##     theme(legend.position="none")
+## Niche
 all.data %>%
     filter(spp%in%index) %>%
     ggplot(aes(grad, det)) + geom_line(aes(colour=region)) + facet_wrap(~spp) +
@@ -408,13 +403,6 @@ all.data %>%
     labs(x="Environmental gradient", y="Species abundance",
          title=paste("Deterministic community from Poisson sample"))
 ## Neutral
-## all.data %>%
-##     ggplot(aes(grad, sto)) + geom_line(aes(colour=spp)) +
-##     scale_y_log10() +
-##     facet_wrap(~region) +
-##     labs(x="Environmental gradient", y="Species abundance",
-##          title="Stochastic community from Poisson sample") +
-##     theme(legend.position="none")
 all.data %>%
     filter(spp%in%index) %>%
     ggplot(aes(grad, sto)) + geom_line(aes(colour=region)) + facet_wrap(~spp) +
@@ -439,7 +427,7 @@ convergence issues.
 ##### Deterministic community w/ right traits, from poisson sample
 
 ```{r models det rt}
-# Niche and neutral dynamics
+## Niche and neutral dynamics
 ## With traits
 nineu.det.rt <- m.full(ab=all.data$det,
                        trait=all.data$trait,
@@ -458,9 +446,9 @@ envneu.det <- m.full2(ab=all.data$det,
                       region=all.data$region, 
                       spp=all.data$spp,
                       family="poisson",
-                       control=glmerControl(optimizer="bobyqa", 
-                                            optCtrl=list(maxfun=5e7))
-                       )
+                      control=glmerControl(optimizer="bobyqa", 
+                                           optCtrl=list(maxfun=5e7))
+                      )
 # Niche dynamics
 ## With traits
 niche.det.rt <- m.niche(ab=all.data$det,
@@ -469,11 +457,11 @@ niche.det.rt <- m.niche(ab=all.data$det,
                         site=all.data$site, 
                         spp=all.data$spp,
                         family="poisson",
-                       control=glmerControl(optimizer="bobyqa", 
-                                            optCtrl=list(maxfun=5e7))
-                       )
-                        
-# W/o traits
+                        control=glmerControl(optimizer="bobyqa", 
+                                             optCtrl=list(maxfun=5e7))
+                        )
+
+## W/o traits
 env.det <- m.env(ab=all.data$det,
                  grad=all.data$grad,
                  site=all.data$site,
@@ -483,7 +471,7 @@ env.det <- m.env(ab=all.data$det,
                                       optCtrl=list(maxfun=5e7))
                  )
 
-# Neutral dynamics
+## Neutral dynamics
 neu.det <- m.neutral(ab=all.data$det,
                      site=all.data$site,
                      region=all.data$region, 
@@ -504,7 +492,7 @@ null.det <- m.null(ab=all.data$det,
                        )
 
 
-# AIC for each model
+## AIC for each model
 AICctab(nineu.det.rt, envneu.det, niche.det.rt, env.det, neu.det, null.det)
 
 ```
@@ -524,12 +512,11 @@ nineu.det.wt <- m.full(ab=all.data$det,
                                             optCtrl=list(maxfun=5e7))
                        )
 
-# Niche dynamics 
+## Niche dynamics 
 niche.det.wt <- m.niche(ab=all.data$det,
                         trait=all.data$trait.wr,
                         grad=all.data$grad,
                         site=all.data$site,
-                        ##region=all.data$region, 
                         spp=all.data$spp,
                         family="poisson",
                         control=glmerControl(optimizer="bobyqa", 
@@ -544,7 +531,7 @@ AICctab(nineu.det.wt, envneu.det, niche.det.wt, env.det, neu.det, null.det)
 ##### Stochastic community w/ right traits, from poisson sample
 
 ```{r models sto rt}
-# Niche and neutral dynamics
+## Niche and neutral dynamics
 nineu.sto.rt <- m.full(ab=all.data$sto,
                        trait=all.data$trait,
                        grad=all.data$grad,
@@ -556,8 +543,9 @@ nineu.sto.rt <- m.full(ab=all.data$sto,
                                             optCtrl=list(method="nlminb",
                                                          starttests = FALSE, kkt = FALSE)))
 
-# Niche and neutral dynamics without species traits
-envneu.sto <- m.full2(ab=all.data$sto, grad=all.data$grad,
+## Niche and neutral dynamics without species traits
+envneu.sto <- m.full2(ab=all.data$sto,
+                      grad=all.data$grad,
                       site=all.data$site,
                       region=all.data$region, 
                       spp=all.data$sp,
@@ -565,25 +553,26 @@ envneu.sto <- m.full2(ab=all.data$sto, grad=all.data$grad,
                       control=glmerControl(optimizer="bobyqa", 
                                            optCtrl=list(maxfun=5e7)))
 
-# Niche dynamics
-niche.sto.rt <- m.niche(ab=all.data$sto, trait=all.data$trait, grad=all.data$grad,
+## Niche dynamics
+niche.sto.rt <- m.niche(ab=all.data$sto,
+                        trait=all.data$trait,
+                        grad=all.data$grad,
                         site=all.data$site,
-                        ##region=all.data$region, 
                         spp=all.data$sp,
                         family="poisson",
                         control=glmerControl(optimizer="bobyqa", 
                                              optCtrl=list(maxfun=5e7)))
 
-# Niche dynamics
-env.sto <- m.env(ab=all.data$sto, grad=all.data$grad,
+## Niche dynamics
+env.sto <- m.env(ab=all.data$sto,
+                 grad=all.data$grad,
                  site=all.data$site,
-                 ##region=all.data$region, 
                  spp=all.data$sp,
                  family="poisson",
                  control=glmerControl(optimizer="bobyqa", 
                                       optCtrl=list(maxfun=5e7)))
 
-# Neutral dynamics
+## Neutral dynamics
 neu.sto <- m.neutral(ab=all.data$sto,
                      site=all.data$site,
                      region=all.data$region, 
@@ -591,16 +580,13 @@ neu.sto <- m.neutral(ab=all.data$sto,
                      family="poisson")
 ## Null hypothesis
 null.sto <- m.null(ab=all.data$sto, 
-                    site=all.data$site, region=all.data$region, 
-                    spp=all.data$sp, family="poisson")
+                   site=all.data$site,
+                   region=all.data$region, 
+                   spp=all.data$sp,
+                   family="poisson")
 
 # AIC for each model
 AICctab(nineu.sto.rt, envneu.sto, niche.sto.rt, env.sto, neu.sto, null.sto)
-
-# R2 for the best model explaining data
-#Error: invalid term in model formula
-#r2.neuPS <- rsquared(neu.sto)
-
 
 ```
 
@@ -640,8 +626,8 @@ distribution.
 
 ```{r test 4.1}
 #Calculating R2
-r2.det.rt <- r2.full(nineu.det.rt)$R2
-r2.sto <- r2.neutral(neu.sto)$R2
+r2.det.rt <- r2.full(nineu.det.rt, null.model = neu.det)$R2
+r2.sto <- r2.neutral(neu.sto, null.model = neu.sto)$R2
 
 table1 <- as.data.frame(bind_rows(r2.det.rt, r2.sto))
 row.names(table1) <- c("Deterministic community w/ right traits", 
@@ -667,13 +653,7 @@ compare the results of the selected model from deterministic
 communities with right and wrong traits.
 
 ```{r test 4.2 right-wrong}
-#Calculating R2
-## r2.det.rt ## Comentei esta linha, pq só mostra o objeto. Tem algum problema?
-## PI: se o neu.det passar a incluir o termo 1|site acho que pode usar ele como modelo nulo para este R2, no argumento 'null.model', não?
-## Control arguments to avoid convergence issues in the fit of the neutral model
-r2.det.wt <- r2.full2(envneu.det,
-                      control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e7)) 
-                      )$R2
+r2.det.wt <- r2.full2(envneu.det, null.model = neu.det)$R2
 
 ## Creating table
 table2 <- as.data.frame(bind_rows(r2.det.rt, r2.det.wt))
@@ -691,8 +671,10 @@ difference between deterministic communities built by uninformative
 and informative species traits. However, by examining the partition
 $R^{2}$ values, one can detect if traits used in the model are
 actually influencing species abundances. Uninformative traits inflate
-marginal $R^{2}$ because of the importance of the term (1|spp:site)
-and minimizes the influence of the trait-environment correlation. When
+marginal $R^{2}$ because of the importance of the term related to the
+random effects of species (env|spp).  The influence of the
+trait-environment interaction ('trait:grad') declines, and so the
+repeatability of fixed effects, that include this interaction. When
 traits are informative and niche dynamics are preponderant, $R^{2}$
 for fixed effects should be particularly high.
 

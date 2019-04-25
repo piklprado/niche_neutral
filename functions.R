@@ -22,25 +22,22 @@ m.full2 <- function(ab, grad, site, region, spp, ...){
 m.niche <- function(ab, trait, grad, site, spp, ...){
     niche <- glmer(ab ~ trait + grad + I(grad^2) + 
                        trait:grad + trait:I(grad^2) + 
-                       (1|spp) +
-                       (1+grad|site), ...)
+                       (1|spp) + (1+grad|site), ...)
     return(niche)#, 
 }
 
 
 ## 4. Solely niche dynamics without species trait (including term to catch wrong traits)
 m.env <- function(ab, grad, site, spp, ...){
-    env <- glmer(ab ~ grad + I(grad^2) 
-                 + (1+grad|spp) + (1+grad|site), ...)
-    return(env)#, 
+    env <- glmer(ab ~ grad + I(grad^2) +
+                     (1+grad|spp) + (1+grad|site), ...)
+    return(env) 
 }
 
 ## 5. Solely neutral dynamics
-## PI: Neste e nos demais sem nicho não falta o termo 1|site ?
-## Se sim tem que refazer estes, e também o cálculo do R2
 m.neutral <- function(ab, site, region, spp, ...){
     neutral <- glmer(ab ~ 1 +
-                         (1|spp) +
+                         (1|spp) + (1|site) +
                          (1|spp:region) + (1|spp:site), ...)
     return(neutral)#, 
 }
@@ -198,10 +195,12 @@ r2.neutral <- function(model, null.model, ...){
     ## Variance for fixed effects
     VarF <- var(as.vector(fixef(model) %*% t(model@pp$X)))
     ## Variance for each component of random effects
-    VarR <-  c(  VarCorr(model)$`spp:site`[1],
+    VarR <-  c(VarCorr(model)$`site`[1],
+               VarCorr(model)$`spp:site`[1],
                VarCorr(model)$`spp:region`[1],
-               VarCorr(model)$`spp`[1])
-    names(VarR) <- c("spp:site", "spp:region", "spp")
+               VarCorr(model)$`spp`[1]
+               )
+    names(VarR) <- c("site", "spp:site", "spp:region", "spp")
     ## Denominator for R2GLMM formula works for Poisson distribution only
     deno <- (VarF + sum(VarR) + #pi^2/3
              log(1 + 1/exp(as.numeric(fixef(m0)))))
@@ -218,7 +217,7 @@ r2.neutral <- function(model, null.model, ...){
     r2.tab <- data.frame(component=c("conditional", "fixed", "random",
                                      names(VarR)),
                          R2=c(r2t,r2f,r2rand, r2rand.part),
-                         type=c("all", "niche", "all.random", "neutral",  "neutral", "idiosyncratic"))
+                         type=c("all", "niche", "all.random", "neutral",  "neutral", "neutral", "idiosyncratic"))
     r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
     names(r2.partition)[2] <- "R2.partition"
     R2 <- r2.tab$R2
@@ -226,39 +225,3 @@ r2.neutral <- function(model, null.model, ...){
     return(list(full.table=r2.tab, part.table=r2.partition, R2=R2))
 }
 
-## Nakagawa & Schielzeth's R2 calculations with random intercepts (Johnson 2014)
-## Original code from Melina Leite
-r.quad <- function(modelo){
-  # variância efeitos fixos
-  var.f <- var(as.vector(fixef(modelo) %*% t(modelo@pp$X)))
-  
-  # variância do intercepto e inclinação juntos pq são correlacionados
-  X <- model.matrix(modelo)
-  n <- nrow(X)
-  Z <- X[, c("(Intercept)","fc800", "forest_3k")]
-  
-  sigma <- VarCorr(modelo)$sp
-  
-  var.sp <- sum(diag(Z %*% sigma %*% t(Z)))/n
-  
-  var.paisa.sp <- VarCorr(modelo)$`paisagem:sp`[1]
-  
-  var.ponto.sp <- VarCorr(modelo)$`ponto:sp`[1]
-  
-  var.paisa <- VarCorr(modelo)$paisagem[1]
-  
-  var.ponto <- VarCorr(modelo)$ponto[1]
-  
-  denominador <- var.f + var.sp + var.paisa + var.ponto + var.paisa.sp +
-    var.ponto.sp + pi^2/3
-  
-  r2.fix <- var.f/denominador
-  r2.cond <- (var.f + var.sp + var.paisa + var.ponto + var.paisa.sp +
-                var.ponto.sp)/denominador
-  
-  res <- data.frame(componente = c("condicional", "marginal", "sp", "paisa.sp",
-                                   "ponto.sp", "paisa", "ponto"),
-                    valores = round(c(r2.cond, r2.fix, c(var.sp, var.paisa.sp,
-                                                         var.ponto.sp, var.paisa, var.ponto)/denominador), 3))
-  return(res) 
-}
