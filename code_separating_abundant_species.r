@@ -161,7 +161,7 @@ m.full2.rar <- glmer(abundance ~ grad + I(grad^2)
                  data=fern.data.rare, family="poisson",
                  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
-m.neutral.rar <- glmer(abundance ~ (1|spp) + (1|spp:region) + (1|spp:site) ,#+ (1|site),
+m.neutral.rar <- glmer(abundance ~ (1|spp) + (1|spp:region) + (1|spp:site) + (1|site),
                    data=fern.data.rare, family="poisson",
                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
@@ -188,17 +188,17 @@ m.list.rar <- list(m.full.rar, m.neutral.rar, m.niche.rar, m.null.rar, m.full2.r
 
 ### AIC
 AICctab(m.list.rar, mnames=mod.names, base=TRUE, weights=TRUE, logLik=TRUE)
-## BIC
-BICtab(m.list.rar, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
-
 
 ###############################################
 ## Part 4 : calculating R2 ####################
 ##############################################
 
-### need to fix functions to work here! 
- r2.ab <- r2_full(m.full.ab)
-# r2.rar <- r2.neutral(m.neutral.rar)
+### using functions from tutorial in file functions.R 
+r2.ab <- r2.full(m.full.ab)
+r2.rar <- r2.neutral(m.neutral.rar)
+
+r2.ab
+r2.rar
 
 ## Metodo 1: desvios-padrão dos previstos
 
@@ -207,63 +207,79 @@ BICtab(m.list.rar, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
 ##################################################################
 
 ### PARA ABUNDANTES
-  # previstos sobre os dados originais (omitindo argumento newdata, usa-se a tabela original de dados)
-  pred.values <- predict(m.full.ab, re.form=NULL, type='response') # changed to type=response to have abundance back on original scale
-  # We calculate mean predicted values and standard error for each altitude 
-  ## Predicted mean values
-  pred.table <- aggregate(pred.values, list(altitude=fern.data.ab$altitude, thickness=fern.data.ab$thickness,
-                                            life_form=fern.data.ab$life_form), mean)
-  ## Predicted stardard deviations
-  pred.table$sd <- aggregate(pred.values, list(altitude=fern.data.ab$altitude, thickness=fern.data.ab$thickness,
-                                               life_form=fern.data.ab$life_form), std)$x
+# previstos sobre os dados originais (omitindo argumento newdata, usa-se a tabela original de dados)
+pred.values <- predict(m.full.ab, re.form=NULL, type='response') # changed to type=response to have abundance back on original scale
+# We calculate mean predicted values and standard error for each altitude 
+## Predicted mean values
+pred.table <- aggregate(pred.values, 
+                        list(altitude=fern.data.ab$altitude, 
+                             thickness=fern.data.ab$thickness,
+                             life_form=fern.data.ab$life_form), mean)
+## Predicted stardard deviations
+pred.table$sd <- aggregate(pred.values, 
+                             list(altitude=fern.data.ab$altitude, 
+                                  thickness=fern.data.ab$thickness,
+                                   life_form=fern.data.ab$life_form), sd)$x
 head(pred.table)
 pred.table$plwr <- pred.table$x - pred.table$sd
 pred.table$pupr <- pred.table$x + pred.table$sd
+
+names(pred.table)[4] <- "Abundance"
 
 ### PARA RARAS
 # previstos sobre os dados originais (omitindo argumento newdata, usa-se a tabela original de dados)
 pred.values2 <- predict(m.neutral.rar, re.form=NULL, type='response') # changed to type=response to have abundance back on original scale
 
-## function for standard error
-std <- function(x) sd(x)/sqrt(length(x))
-
 # We calculate mean predicted values and standard error for each altitude 
 ## Predicted mean values
-pred.table2 <- aggregate(pred.values2, list(altitude=fern.data.rare$altitude, thickness=fern.data.rare$thickness,
-                                          life_form=fern.data.rare$life_form), mean)
+pred.table2 <- aggregate(pred.values2, 
+                         list(altitude=fern.data.rare$altitude, 
+                              thickness=fern.data.rare$thickness,
+                              life_form=fern.data.rare$life_form), mean)
 ## Predicted stardard deviations
-pred.table2$sd <- aggregate(pred.values2, list(altitude=fern.data.rare$altitude, thickness=fern.data.rare$thickness,
-                                             life_form=fern.data.rare$life_form), std)$x
+pred.table2$sd <- aggregate(pred.values2, 
+                            list(altitude=fern.data.rare$altitude, 
+                                 thickness=fern.data.rare$thickness,
+                                 life_form=fern.data.rare$life_form), sd)$x
 head(pred.table2)
 pred.table2$plwr <- pred.table2$x - pred.table2$sd
 pred.table2$pupr <- pred.table2$x + pred.table2$sd
 
+names(pred.table2)[4] <- "Abundance"
+
 ### PARA ABUNDANTES
 # Second we create a data frame with observed mean values and its standard error
-obs <- aggregate(fern.data.ab$abundance, by=list(altitude=fern.data.ab$grad, thickness=fern.data.ab$thickness,
-                                              life_form=fern.data.ab$life_form), mean)
+obs <- aggregate(fern.data.ab$abundance, 
+                 by=list(altitude=fern.data.ab$grad, 
+                         thickness=fern.data.ab$thickness,
+                         life_form=fern.data.ab$life_form), mean)
 ## Observed standard deviation
-obs$std <- aggregate(fern.data.ab$abundance, by=list(altitude=fern.data.ab$grad, thickness=fern.data.ab$thickness,
-                                              life_form=fern.data.ab$life_form), std)$x
+obs$sd <- aggregate(fern.data.ab$abundance, 
+                    by=list(altitude=fern.data.ab$grad, 
+                            thickness=fern.data.ab$thickness,
+                            life_form=fern.data.ab$life_form), sd)$x
 head(obs)
-names(obs) <- c("Altitude", "thickness", "life_form", "Abundance", "std")
+names(obs) <- c("Altitude", "thickness", "life_form", "Abundance", "sd")
 
 ### PARA RARAS
 # Second we create a data frame with observed mean values and its standard error
-obs.rar <- aggregate(fern.data.rare$abundance, by=list(altitude=fern.data.rare$grad, thickness=fern.data.rare$thickness,
-                                                 life_form=fern.data.rare$life_form), mean)
+obs.rar <- aggregate(fern.data.rare$abundance, 
+                     by=list(altitude=fern.data.rare$grad, 
+                             thickness=fern.data.rare$thickness,
+                             life_form=fern.data.rare$life_form), mean)
 ## Observed standard deviation
-obs.rar$std <- aggregate(fern.data.rare$abundance, by=list(altitude=fern.data.rare$grad, thickness=fern.data.rare$thickness,
-                                                     life_form=fern.data.rare$life_form), std)$x
+obs.rar$sd <- aggregate(fern.data.rare$abundance, 
+                        by=list(altitude=fern.data.rare$grad, 
+                                thickness=fern.data.rare$thickness,
+                                life_form=fern.data.rare$life_form), sd)$x
 head(obs.rar)
-names(obs.rar) <- c("Altitude", "thickness", "life_form", "Abundance", "std")
+names(obs.rar) <- c("Altitude", "thickness", "life_form", "Abundance", "sd")
 
-summary(obs)
-
-summary(pred.table)
+head(pred.table)
+head(pred.table2)
 
 head(obs)
-head(pred.table)
+head(obs.rar)
 
 #############################################
 ######### Creating figures ##################
@@ -286,59 +302,78 @@ nomes <- c(ep="epiphyte", hemi="hemiepiphyte", ter="terrestrial", coriacea="cori
 ## Um grafico rapido
 #pdf("abudant_gradient.pdf")
 obs %>%
-    mutate(lAb=Abundance, lstd=std, lwr=lAb-lstd, upr=lAb+lstd, 
+    mutate(lAb=Abundance, lsd=sd, lwr=lAb-lsd, upr=lAb+lsd, 
            Altitude=rep(unique(altitude), 6)) %>%
     ggplot(aes(Altitude, lAb)) +
-    ylab("Abundance (log)") + scale_y_log10() + # making only y axis in log and not abundance values
+    ylab("Abundance (log)") + #scale_y_log10() + # making only y axis in log and not abundance values
+    facet_grid(thickness ~ life_form, labeller=as_labeller(nomes)) +
     geom_point(colour=cores, size=3) +
     geom_linerange(aes(ymin=lwr, ymax=upr), colour=cores) +
-    facet_grid(thickness ~ life_form, labeller=as_labeller(nomes)) +
-    geom_ribbon(aes(x=altitude, y=x, ymin=plwr, ymax=pupr), data=pred.table, alpha=0.1) +
+    geom_ribbon(aes(x=altitude, y=Abundance, ymin=plwr, ymax=pupr), 
+                data=pred.table, alpha=0.1) +
     theme_classic(base_size=15) #+
 #    theme(strip.background = element_blank(), strip.text = element_blank())
 #dev.off()
 
-#pdf("rare_gradient.pdf")
-obs.rar %>%
-  mutate(lAb=Abundance, lstd=std, lwr=lAb-lstd, upr=lAb+lstd, 
-         Altitude=rep(unique(altitude), 5)) %>%
-  ggplot(aes(Altitude, lAb)) +
-  ylab("Abundance (log)") + scale_y_log10() + # making only y axis in log and not abundance values
-  geom_point(colour=cores.rar, size=3) +
-  geom_linerange(aes(ymin=lwr, ymax=upr), colour=cores.rar) +
-  facet_grid(thickness ~ life_form, labeller=as_labeller(nomes)) +
-  geom_ribbon(aes(x=altitude, y=x, ymin=plwr, ymax=pupr), data=pred.table2, alpha=0.1) +
-  theme_classic(base_size=15) #+
-#dev.off()
-
-###############################################
-######### DAQUI PRA FRENTE AINDA NAO FUNFA ####
-###############################################
 
 #########################################
 #### Grafico SADS  #####################
 #########################################
 
-### abundancia da metacomunidade
-ab.tot <- data.frame(spp=names(ab.meta), ab=ab.meta)
-ab.tot <- merge(ab.tot, ab.rare, by="spp")
+# creating data frame with predicted mean and sp for each species in the metacommunity
+meta.df <- aggregate(fern.data$abundance, list(spp=fern.data$spp), mean)
+meta.df$sd.obs <- aggregate(fern.data$abundance, list(fern.data$spp), sd)$x
+meta.df$rarity <- ab.rare$ab.rare
+head(meta.df)
 
-head(ab.tot)
+names(meta.df)[2] <- "mean.obs"
 
-#ab.med <- lapply(all.data, function(x) x[x$x>0,])
+# mean and sd for abundant and rare species
+ab.df <- aggregate(pred.values,
+                   list(spp=fern.data.ab$spp), mean)
+ab.df$sd.pred <- aggregate(pred.values, 
+                           list(spp=fern.data.ab$spp), sd)$x
+rare.df <- aggregate(pred.values2, 
+                     list(spp=fern.data.rare$spp), mean)
+rare.df$sd.pred <- aggregate(pred.values2, 
+                             list(spp=fern.data.rare$spp), sd)$x
+
+ab.rare.df <- bind_rows(ab.df, rare.df)
+ab.rare.df.or <- ab.rare.df[order(ab.rare.df$spp),] 
+dim(ab.rare.df.or)
+
+meta.df$mean.pred <- ab.rare.df.or$x
+meta.df$sd.pred <- ab.rare.df.or$sd
+
+# colors from thesis
+# \definecolor{niche}{RGB}{202, 0, 32}
+# \definecolor{neutral}{RGB}{4,4,160}
+# \definecolor{nineu}{RGB}{245,219,58}
+# \definecolor{grey}{RGB}{180,177,172}
+
+ab.cor <- rgb(245,219,58, maxColorValue = 255)
+rare.cor <- rgb(4,4,160, maxColorValue = 255)
+
+meta.df$cor <- ifelse(meta.df$rarity=="rare", rare.cor, ab.cor)
+
+# write.table(meta.df, "metacommunity_predicted_abundances.csv", 
+#             sep=",", row.names=FALSE, col.names = TRUE)
 
 # sad total
-sad <- ggplot(aes(reorder(spp, -ab), ab), data=ab.tot) +
-  ylab("Abundance (log)") + scale_y_log10() + # making only y axis in log and not abundance values
-  xlab("spp") +
-  geom_point(size=3) +
-  #geom_linerange(aes(ymin=lwr, ymax=upr), colour=cores.rar) +
+sad <- ggplot(aes(reorder(spp, -mean.obs), mean.obs), data=meta.df) +
+  ylab("Abundance (log)") + #scale_y_log10() + # making only y axis in log and not abundance values
+  xlab("Species") +
+  geom_point(colour=meta.df$cor, size=3) +
+  geom_linerange(aes(ymin=mean.obs-sd.obs, 
+                     ymax=mean.obs+sd.obs), colour=meta.df$cor) +
   #facet_grid(ab.tot$ab.rare) +
-  #geom_ribbon(aes(x=altitude, y=x, ymin=plwr, ymax=pupr), data=pred.table2, alpha=0.1) +
+  # geom_ribbon(aes(spp, 
+  #                 ymin=mean.pred-sd.pred, 
+  #                 ymax=mean.pred+sd.pred), alpha=1) +
   theme_classic(base_size=15) #+
 #dev.off()
 
-sad
+sad + theme(axis.text.x = element_blank())
 
 ### grafico com as oitavas
 oc.com <- octav(ab.tot$ab)
