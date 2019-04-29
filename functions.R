@@ -106,7 +106,8 @@ r2.full <- function(model, null.model, ...){
     r2.tab <- data.frame(component=c("conditional", "fixed", "random",
                                      names(VarR)),
                          R2=c(r2t,r2f,r2rand, r2rand.part),
-                         type=c("all", "niche", "all.random", "niche", "neutral", "neutral", "idiosyncratic"))
+                         type=c("all", "niche", "all.random", 
+                                "neutral", "neutral", "neutral", "idiosyncratic"))
     r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
     names(r2.partition)[2] <- "R2.partition"
     R2 <- r2.tab$R2
@@ -166,7 +167,8 @@ r2.full2 <- function(model, null.model, ...){
     r2.tab <- data.frame(component=c("conditional", "fixed", "random",
                                      names(VarR)),
                          R2=c(r2t,r2f,r2rand, r2rand.part),
-                         type=c("all", "niche", "all.random", "niche",  "niche", "neutral", "neutral"))
+                         type=c("all", "niche", "all.random", 
+                                "neutral",  "niche", "neutral", "neutral"))
     r2.partition <- aggregate(r2.tab$R2, list(type=r2.tab$type), sum)
     names(r2.partition)[2] <- "R2.partition"
     R2 <- r2.tab$R2

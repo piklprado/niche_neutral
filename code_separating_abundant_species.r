@@ -5,7 +5,7 @@
 
 ## Code for applying the niche-neutral GLMM framework
 ## Data and analysis from the manuscript  
-### Core for separating abundant and rare species
+### Core for separating abundant and rare spp
 
 #############################
 # PART 1: loading packages #
@@ -22,23 +22,24 @@ library(ggplot2)
 library(reshape)
 library(sads)
 ## functions to calculate R2 
-source("r2_full.R")
-source("r2_neutral.R")
+source("functions.R")
+
 
 #############################
 # PART 2: loading data ######
 ############################
 
-fern.data <- read.csv("fern_data_Mortaraetal.csv", header=TRUE)
+fern.data <- read.csv("fern_data_Mortaraetal.csv", as.is=TRUE)
 head(fern.data)
+names(fern.data)[c(2, 4, 9)] <- c("spp", "region", "grad")
 tail(fern.data)
 fern.data <- na.omit(fern.data) # tem 60 NA's de indumento e espessura de folha. É isto mesmo? sao duas especies apenas, mas como todo mundo ocorre em todo lugar ficam 60
 #fern.data$site <- scale(rep(1:30, length(unique(fern.data$species)))) ## troquei por um fator
-fern.data$site <- factor(rep(1:30, length(unique(fern.data$species))))
-sp <- unique(fern.data$species)
+fern.data$site <- factor(rep(1:30, length(unique(fern.data$spp))))
+sp <- unique(fern.data$spp)
     
 ### Creating sp site matrix
-sp.site <- cast(fern.data, site + altitude ~ species, value='abundance', FUN=mean)
+sp.site <- cast(fern.data, site + altitude ~ spp, value='abundance', FUN=mean)
 sp.site
 
 site <- sp.site$site
@@ -54,6 +55,8 @@ sp.alt <- apply(sp.site, 2, function(x) tapply(x, altitude, mean))
 ab.meta <- colSums(sp.site)
 names(ab.meta) <- sp
 
+length(ab.meta)
+
 #### separating 40 most abundant species in the metacommunity
 indice.sp <- order(ab.meta, decreasing=TRUE)[1:40]
 
@@ -66,8 +69,8 @@ plot(freq ~ ab.mean)
 
 
 #### Will indentify species as abundant (first 40 in rank) and rare (other)
-ab.rare <- data.frame(species=unique(fern.data$species),
-                      ab.rare=ifelse(sp%in%sp[indice.sp], "abundant", "rare"))
+ab.rare <- data.frame(spp=unique(fern.data$spp),
+                        ab.rare=ifelse(sp%in%sp[indice.sp], "abundant", "rare"))
 
 ab.rare
 
@@ -92,94 +95,90 @@ head(fern.data.ab)
 head(fern.data.rare)
 
 ## Ecological Strategy defined by all the three traits: laminar thickness, life form and indumentum interacting with altitude, drift among species sharing the same ES, local and regional limited dispersal
-m.full.ab <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
-                ##+ indumentum*alt_std + indumentum*I(alt_std^2)
-                +  life_form*alt_std + life_form*I(alt_std^2)
-                + (1|species) + (1|species:mountain) + (1|species:site) + (1+alt_std|site),
+m.full.ab <- glmer(abundance ~ thickness*grad + thickness*I(grad^2)
+                ##+ indumentum*grad + indumentum*I(grad^2)
+                +  life_form*grad + life_form*I(grad^2)
+                + (1|spp) + (1|spp:region) + (1|spp:site) + (1+grad|site),
                 data=fern.data.ab, family="poisson",
                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
-m.full2.ab <- glmer(abundance ~ alt_std + I(alt_std^2)
-                 ##+ (1|species)
-                 + (1|species:mountain) + (1|species:site) + (1+alt_std|species) + (1+alt_std|site),
+m.full2.ab <- glmer(abundance ~ grad + I(grad^2)
+                 ##+ (1|spp)
+                 + (1|spp:region) + (1|spp:site) + (1+grad|spp) + (1+grad|site),
                   data=fern.data.ab, family="poisson",
                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
 # ### using estimated parameters to buit a new model
-# ss <- getME(m.full2.ab, c("theta","fixef"))
-# m.full2b.ab <- update(m.full2.ab, start=ss)
+ss <- getME(m.full2.ab, c("theta","fixef"))
+m.full2b.ab <- update(m.full2.ab, start=ss)
 
-m.neutral.ab <- glmer(abundance ~ (1|species) + (1|species:mountain) + (1|species:site) ,#+ (1|site),
+m.neutral.ab <- glmer(abundance ~ (1|spp) + (1|spp:region) + (1|spp:site) + (1|site),
                    data=fern.data.ab, family="poisson",
                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
-m.niche.ab <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
-                 ##+ indumentum*alt_std + indumentum*I(alt_std^2)
-                 +  life_form*alt_std + life_form*I(alt_std^2)
-                 + (1|species) + (1+alt_std|site),
+m.niche.ab <- glmer(abundance ~ thickness*grad + thickness*I(grad^2)
+                 ##+ indumentum*grad + indumentum*I(grad^2)
+                 +  life_form*grad + life_form*I(grad^2)
+                 + (1|spp) + (1+grad|site),
                  data=fern.data.ab, family="poisson",
                  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
-m.env.ab <- glmer(abundance ~ alt_std + I(alt_std^2)
-               + (1+alt_std|site) + (1+alt_std|species),
+m.env.ab <- glmer(abundance ~ grad + I(grad^2)
+               + (1+grad|site) + (1+grad|spp),
                data=fern.data.ab, family="poisson",
                control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 m.null.ab <- glmer(abundance ~ 1 
-                + (1|species) + (1|mountain) + (1|site),
+                + (1|spp) + (1|region) + (1|site),
                 data=fern.data.ab, family="poisson",
                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 ## Model selection
-m.list <- list(m.full.ab, m.neutral.ab, m.niche.ab, m.null.ab, m.full2.ab,
+m.list <- list(m.full.ab, m.neutral.ab, m.niche.ab, m.null.ab, m.full2b.ab,
                m.env.ab)#, m.full.thickness, m.full.lifeform, m.full.indument)
 mod.names <- c("niche & neutral", "neutral", "niche", "null", "env & neutral",
                "env")#, "thickness&neutral", "lifef&neutral", "indument&neutral")
 
 ### AIC
 AICctab(m.list, mnames=mod.names, base=TRUE, weights=TRUE, logLik=TRUE)
-## BIC
-BICtab(m.list, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
-
-head(fern.data.ab)
 
 #######################
-### Rare species now
+### Rare spp now
 ########################
 
-## Ecological Strategy defined by all the three traits: laminar thickness, life form and indumentum interacting with altitude, drift among species sharing the same ES, local and regional limited dispersal
-m.full.rar <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
-                ##+ indumentum*alt_std + indumentum*I(alt_std^2)
-                +  life_form*alt_std + life_form*I(alt_std^2)
-                + (1|species) + (1|species:mountain) + (1|species:site) + (1+alt_std|site),
+## Ecological Strategy defined by all the three traits: laminar thickness, life form and indumentum interacting with altitude, drift among spp sharing the same ES, local and regional limited dispersal
+m.full.rar <- glmer(abundance ~ thickness*grad + thickness*I(grad^2)
+                ##+ indumentum*grad + indumentum*I(grad^2)
+                +  life_form*grad + life_form*I(grad^2)
+                + (1|spp) + (1|spp:region) + (1|spp:site) + (1+grad|site),
                 data=fern.data.rare, family="poisson",
                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 ## Trying different combinations of traits
-m.full2.rar <- glmer(abundance ~ alt_std + I(alt_std^2)
-                 ##+ (1|species)
-                 + (1|species:mountain) + (1|species:site) + (1+alt_std|species) + (1+alt_std|site),
+m.full2.rar <- glmer(abundance ~ grad + I(grad^2)
+                 ##+ (1|spp)
+                 + (1|spp:region) + (1|spp:site) + (1+grad|spp) + (1+grad|site),
                  data=fern.data.rare, family="poisson",
                  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
-m.neutral.rar <- glmer(abundance ~ (1|species) + (1|species:mountain) + (1|species:site) ,#+ (1|site),
+m.neutral.rar <- glmer(abundance ~ (1|spp) + (1|spp:region) + (1|spp:site) ,#+ (1|site),
                    data=fern.data.rare, family="poisson",
                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
-m.niche.rar <- glmer(abundance ~ thickness*alt_std + thickness*I(alt_std^2)
-                 ##+ indumentum*alt_std + indumentum*I(alt_std^2)
-                 +  life_form*alt_std + life_form*I(alt_std^2)
-                 + (1|species) + (1+alt_std|site),
+m.niche.rar <- glmer(abundance ~ thickness*grad + thickness*I(grad^2)
+                 ##+ indumentum*grad + indumentum*I(grad^2)
+                 +  life_form*grad + life_form*I(grad^2)
+                 + (1|spp) + (1+grad|site),
                  data=fern.data.rare, family="poisson",
                  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
-m.env.rar <- glmer(abundance ~ alt_std + I(alt_std^2)
-               + (1+alt_std|site) + (1+alt_std|species),
+m.env.rar <- glmer(abundance ~ grad + I(grad^2)
+               + (1+grad|site) + (1+grad|spp),
                data=fern.data.rare, family="poisson",
                control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 m.null.rar <- glmer(abundance ~ 1 
-                + (1|species) + (1|mountain) + (1|site),
+                + (1|spp) + (1|region) + (1|site),
                 data=fern.data.rare, family="poisson",
                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
@@ -198,7 +197,7 @@ BICtab(m.list.rar, mnames=mod.names,base=TRUE, weights=TRUE, logLik=TRUE)
 ##############################################
 
 ### need to fix functions to work here! 
-# r2.ab <- r2.full(m.full.ab)
+ r2.ab <- r2_full(m.full.ab)
 # r2.rar <- r2.neutral(m.neutral.rar)
 
 ## Metodo 1: desvios-padrão dos previstos
@@ -241,20 +240,20 @@ pred.table2$pupr <- pred.table2$x + pred.table2$sd
 
 ### PARA ABUNDANTES
 # Second we create a data frame with observed mean values and its standard error
-obs <- aggregate(fern.data.ab$abundance, by=list(altitude=fern.data.ab$alt_std, thickness=fern.data.ab$thickness,
+obs <- aggregate(fern.data.ab$abundance, by=list(altitude=fern.data.ab$grad, thickness=fern.data.ab$thickness,
                                               life_form=fern.data.ab$life_form), mean)
 ## Observed standard deviation
-obs$std <- aggregate(fern.data.ab$abundance, by=list(altitude=fern.data.ab$alt_std, thickness=fern.data.ab$thickness,
+obs$std <- aggregate(fern.data.ab$abundance, by=list(altitude=fern.data.ab$grad, thickness=fern.data.ab$thickness,
                                               life_form=fern.data.ab$life_form), std)$x
 head(obs)
 names(obs) <- c("Altitude", "thickness", "life_form", "Abundance", "std")
 
 ### PARA RARAS
 # Second we create a data frame with observed mean values and its standard error
-obs.rar <- aggregate(fern.data.rare$abundance, by=list(altitude=fern.data.rare$alt_std, thickness=fern.data.rare$thickness,
+obs.rar <- aggregate(fern.data.rare$abundance, by=list(altitude=fern.data.rare$grad, thickness=fern.data.rare$thickness,
                                                  life_form=fern.data.rare$life_form), mean)
 ## Observed standard deviation
-obs.rar$std <- aggregate(fern.data.rare$abundance, by=list(altitude=fern.data.rare$alt_std, thickness=fern.data.rare$thickness,
+obs.rar$std <- aggregate(fern.data.rare$abundance, by=list(altitude=fern.data.rare$grad, thickness=fern.data.rare$thickness,
                                                      life_form=fern.data.rare$life_form), std)$x
 head(obs.rar)
 names(obs.rar) <- c("Altitude", "thickness", "life_form", "Abundance", "std")
@@ -321,17 +320,17 @@ obs.rar %>%
 #########################################
 
 ### abundancia da metacomunidade
-ab.tot <- data.frame(species=names(ab.meta), ab=ab.meta)
-ab.tot <- merge(ab.tot, ab.rare, by="species")
+ab.tot <- data.frame(spp=names(ab.meta), ab=ab.meta)
+ab.tot <- merge(ab.tot, ab.rare, by="spp")
 
 head(ab.tot)
 
 #ab.med <- lapply(all.data, function(x) x[x$x>0,])
 
 # sad total
-sad <- ggplot(aes(reorder(species, -ab), ab), data=ab.tot) +
+sad <- ggplot(aes(reorder(spp, -ab), ab), data=ab.tot) +
   ylab("Abundance (log)") + scale_y_log10() + # making only y axis in log and not abundance values
-  xlab("Species") +
+  xlab("spp") +
   geom_point(size=3) +
   #geom_linerange(aes(ymin=lwr, ymax=upr), colour=cores.rar) +
   #facet_grid(ab.tot$ab.rare) +
@@ -354,14 +353,14 @@ oc.df$abra <- as.vector(c(rep("abundant", 13), rep("rare", 9)))
 
 ### preparando os dados
 prev.ab <- data.frame(abundance=pred.values, site=fern.data.ab$site, 
-                      altitude=fern.data.ab$altitude, species=fern.data.ab$species)
+                      altitude=fern.data.ab$altitude, spp=fern.data.ab$spp)
 
 prev.ra <- data.frame(abundance=pred.values2, site=fern.data.rare$site, 
-                      altitude=fern.data.rare$altitude, species=fern.data.rare$species)
+                      altitude=fern.data.rare$altitude, spp=fern.data.rare$spp)
 
 all.prev <- list(prev.ab, prev.ra)
 
-sp.site.prev <- lapply(all.prev, function(x) cast(x, site + altitude ~ species, 
+sp.site.prev <- lapply(all.prev, function(x) cast(x, site + altitude ~ spp, 
                                              value='abundance', FUN=mean)) 
 
 ### calculando vetor de abundancias previstos
