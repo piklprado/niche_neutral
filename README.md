@@ -6,4 +6,4 @@ Code for Mortara et al niche and neutral dynamics
 - original data is at /data
 - tutorial for appendix is at /tutorial/ -- we need to separate code for generation of data from tutorial 
 - figures for the manuscript at /figures/
-- text it /manuscript/ 
+- text at /manuscript/ 
