@@ -114,7 +114,9 @@ m.full2.ab <- glmer(abundance ~ grad + I(grad^2)
 ss <- getME(m.full2.ab, c("theta","fixef"))
 m.full2b.ab <- update(m.full2.ab, start=ss)
 
-m.neutral.ab <- glmer(abundance ~ (1|spp) + (1|spp:region) + (1|spp:site) + (1|site),
+m.neutral.ab <- glmer(abundance ~
+                      #    (1|spp)
+                      + (1|spp:region) + (1|spp:site) + (1|site),
                    data=fern.data.ab, family="poisson",
                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
@@ -163,7 +165,9 @@ m.full2.rar <- glmer(abundance ~ grad + I(grad^2)
                  data=fern.data.rare, family="poisson",
                  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
-m.neutral.rar <- glmer(abundance ~ (1|spp) + (1|spp:region) + (1|spp:site) + (1|site),
+m.neutral.rar <- glmer(abundance ~
+                       #    (1|spp)
+                       + (1|spp:region) + (1|spp:site) + (1|site),
                    data=fern.data.rare, family="poisson",
                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
@@ -423,6 +427,22 @@ dev.off()
 
 #save.image("Mortaraetal.RData")
 
+##### NEW Code for sads ####
 
-    
+head(fern.data.ab)
+
+spp <- unique(fern.data.ab$spp)
+grad <- unique(fern.data.ab$grad)
+site <- unique(fern.data.ab$site)
+region <- unique(fern.data.ab$region)
+
+newdata <- data.frame(spp=rep(spp, each=length(site)),
+                      region=rep(region[1], each=length(spp)*length(site)),
+                      site=rep(site, each=length(spp)),
+                      grad=rep(grad, each=length(spp)))
+
+head(newdata)
+
+mf2.pi.all <- merTools::predictInterval(m.full.ab,  which="all", type="linear.prediction", level=0.95)
+
 
