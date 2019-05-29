@@ -30,7 +30,7 @@ source("functions.R")
 ############################
 
 # reading data
-fern.data <- read.csv("fern_data_Mortaraetal.csv", as.is=TRUE)
+fern.data <- read.csv("../data/fern_data_Mortaraetal.csv", as.is=TRUE)
 head(fern.data)
 # changing column names
 names(fern.data)[c(2, 4, 9)] <- c("spp", "region", "grad")
@@ -198,11 +198,9 @@ AICctab(m.list.rar, mnames=mod.names, base=TRUE, weights=TRUE, logLik=TRUE)
 ### using functions from tutorial in file functions.R 
 r2.ab <- r2.full(m.full.ab)
 r2.rar <- r2.neutral(m.neutral.rar)
-r2.rar2 <- r2.full(m.full.rar)
 
 r2.ab
 r2.rar
-
 
 #### Grafico R2 ####
 ## creating data frame for plot
@@ -211,9 +209,11 @@ r2.df$group <- rep(c("abundant", "rare"), each=7)
 
 r2.df <- r2.df[!r2.df$type%in%c("all", "all.random"),]
 
+#pdf("../figures/barplot.pdf")
 ggplot(r2.df, aes(fill=type, y=R2, x=group)) + 
     geom_bar(stat="identity", position="fill") +
     theme_classic()
+#dev.off()
 
 ## Metodo 1: desvios-padrão dos previstos
 
@@ -275,7 +275,7 @@ nomes <- c(ep="epiphyte", hemi="hemiepiphyte", ter="terrestrial", coriacea="cori
 #############################################
 
 ## Um grafico rapido
-#pdf("abudant_gradient.pdf")
+#pdf("../figures/abundant_gradient.pdf")
 obs %>%
     mutate(Altitude=rep(unique(altitude), 6)) %>%
     ggplot(aes(Altitude, Abundance)) +
@@ -288,7 +288,6 @@ obs %>%
     theme_classic(base_size=15) #+
 #    theme(strip.background = element_blank(), strip.text = element_blank())
 #dev.off()
-
 
 #########################################
 #### Grafico SADS  #####################
@@ -342,26 +341,45 @@ sad <- ggplot(aes(reorder(spp, -mean.obs), mean.obs), data=meta.df) +
   geom_linerange(aes(ymin=mean.obs-sd.obs, 
                      ymax=mean.obs+sd.obs), colour=meta.df$cor) +
   #facet_grid(ab.tot$ab.rare) +
-   geom_ribbon(aes(spp, 
-                   ymin=mean.pred-sd.pred, 
-                   ymax=mean.pred+sd.pred), alpha=1) +
+    geom_ribbon(aes(x=reorder(spp, -mean.obs),
+                    y=mean.obs, 
+                    ymin=mean.pred-sd.pred, 
+                    ymax=mean.pred+sd.pred), alpha=0.5) +
   theme_classic(base_size=15) #+
 #dev.off()
 
 sad
 
-pdf("grafico_sad.pdf")
+#pdf("../figures/grafico_sad.pdf")
 sad + theme(axis.text.x = element_blank()) + coord_cartesian(xlim=c(0,153), ylim=c(0,110))
-dev.off()
+#dev.off()
 
 ### grafico com as oitavas
-oc.com <- octav(meta.df$mean.obs)
 
-## para ps valores observados
-oc.abra <- tapply(meta.df$mean.obs, list(meta.df$rarity), octav)
-oc.df <- rbind(oc.abra[[1]], oc.abra[[2]])
+### preparando os dados observados
+obs.ab <- data.frame(abundance=fern.data.ab$abundance, site=fern.data.ab$site, 
+                      altitude=fern.data.ab$altitude, spp=fern.data.ab$spp)
 
-oc.df$abra <- as.vector(c(rep("abundant", 8), rep("rare", 10)))
+obs.ra <- data.frame(abundance=fern.data.rare$abundance, site=fern.data.rare$site, 
+                      altitude=fern.data.rare$altitude, spp=fern.data.rare$spp)
+
+all.obs <- list(obs.ab, obs.ra)
+
+head(all.obs[[1]])
+
+sp.site.obs <- lapply(all.obs, function(x) cast(x, site + altitude ~ spp, 
+                                             value='abundance', FUN=mean)) 
+
+### calculando vetor de abundancias previstos
+ab.obs <- lapply(sp.site.obs, colSums)
+ab.obs
+
+### calculando as oitavas previstas
+oc.obs <- lapply(ab.obs, octav)
+oc.obs
+
+oc.df.obs <- rbind(oc.obs[[1]], oc.obs[[2]])
+oc.df.obs$abra <- c(rep("abundant", 13), rep("rare", 9))
 
 # agora para os previstos
 
@@ -388,15 +406,18 @@ oc.prev
 oc.df.prev <- rbind(oc.prev[[1]], oc.prev[[2]])
 oc.df.prev$abra <- c(rep("abundant", 13), rep("rare", 10))
 
-oc.df.prev <- oc.df.prev[,-14]
+oc.df.prev <- oc.df.prev[oc.df.prev$octave>0,]
 
-oc <- ggplot(aes(octave, Freq), data=oc.df) +
+
+oc <- ggplot(aes(octave, Freq), data=oc.df.obs) +
   geom_bar(stat="identity") +
   facet_grid(abra ~.) +
   geom_point(aes(octave, Freq), data=oc.df.prev) +
   theme_classic(base_size=15) #+
 
-pdf("octaves.pdf")
+oc
+
+pdf("../figures/octaves.pdf")
 oc
 dev.off()
 
