@@ -148,7 +148,7 @@ Nsites <- 30
 ## Number of regions
 Nregions <- 3
 ## Number of species
-Nspp <- 166
+Nspp <- 153
 
 ## Sites attributes ##
 ## Here are the xy-coordinates of sites: 3 regions with 10 sites each
@@ -163,7 +163,6 @@ sites$env <- rep(seq(1,5, length=Nsites/Nregions), each=Nregions)
 
 ## Calculate niches for species: optimal values along the enviromental variable
 sp.opt <- runif(Nspp, min = 1, max = 5)
-
 ```
 
 Here, we generate the sites x species matrix with community initial
