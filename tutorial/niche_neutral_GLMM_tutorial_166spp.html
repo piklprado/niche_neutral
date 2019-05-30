@@ -334,11 +334,13 @@ library(bbmle)
 library(optimx)
 library(piecewiseSEM)
 library(sads)
-library(ggplot2)
-library(dplyr)
+library(ggplot2)</code></pre>
+<pre><code>## Warning: package 'ggplot2' was built under R version 3.5.3</code></pre>
+<pre class="r"><code>library(dplyr)
 library(MASS)
-library(knitr)
-source(&quot;../code/functions.R&quot;)</code></pre>
+library(knitr)</code></pre>
+<pre><code>## Warning: package 'knitr' was built under R version 3.5.3</code></pre>
+<pre class="r"><code>source(&quot;../code/functions.R&quot;)</code></pre>
 <p>Here we specify the random number generator seed:</p>
 <pre class="r"><code>set.seed(42)</code></pre>
 <p>To evaluate our methods, we generate the meta-community data. Part of the code used here is adapted from <a href="Sokol's%20MCSim%20tutorial">http://rstudio-pubs-static.s3.amazonaws.com/159425_80725873417e42fdb13821c10a198281.html</a>. To replicate our fern data set, we simulated a metaccomunity of 166 species over in 10 in each of three regions (mountain chains).</p>
@@ -499,43 +501,48 @@ xtabs(det.pois~det$spp)%&gt;% as.vector() %&gt;% rad() %&gt;% plot(rad(det.pois)
 </ol>
 <p>In order to represent each hypothesis, we will build a set of models using GLMM with fixed and random effects as below. Niche dynamics are represented by trait and environment effects, whereas neutral dynamics are represented by species, sites and region effects as random effects. Given that species traits are measured at species level, we included species as a random effect on all models (explicitly or implicity fo models with the term 1+grad|spp). Therefore, this random effect does not represent neutral or dynamics, but an indiosyncratic effect of species allowing a random intercept for species abundances.</p>
 <table>
+<colgroup>
+<col width="25%"></col>
+<col width="28%"></col>
+<col width="45%"></col>
+</colgroup>
 <thead>
 <tr class="header">
-<th>Hypothesis</th>
-<th>Fixed effects</th>
-<th>Random Effects</th>
+<th align="center">Hypothesis</th>
+<th align="center">Fixed Effects</th>
+<th align="center">Random Effects</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Neutral and niche dynamics</td>
-<td>trait + grad + I(grad^2)</td>
-<td>1</td>
+<td align="center">Neutral and niche dynamics</td>
+<td align="center">trait * (grad + I(grad^2))</td>
+<td align="center">(1|spp) + (1+grad|site) + (1|spp:site) + (1|spp:region)</td>
 </tr>
 <tr class="even">
-<td>grad + I(grad^2)</td>
-<td>1</td>
-<td>spp + 1</td>
+<td align="center"></td>
+<td align="center">grad + I(grad^2)</td>
+<td align="center">(1+grad|spp) + (1+grad|site) + (1|spp:site) + (1|spp:region)</td>
 </tr>
 <tr class="odd">
-<td>Solely neutral dynamics</td>
-<td>-</td>
-<td>1</td>
+<td align="center">Solely neutral dynamics</td>
+<td align="center">-</td>
+<td align="center">(1|site) + (1|spp:site) + (1|spp:region)</td>
 </tr>
 <tr class="even">
-<td>Solely niche dynamics</td>
-<td>trait + grad + I(grad^2)</td>
-<td>1</td>
+<td align="center">Solely niche dynamics</td>
+<td align="center">trait * (grad + I(grad^2))</td>
+<td align="center">(1|spp) + (1+grad|site)</td>
 </tr>
 <tr class="odd">
-<td>grad + I(grad^2)</td>
-<td>1+grad</td>
-<td>spp + 1+grad</td>
+<td align="center"></td>
+<td align="center">grad + I(grad^2)</td>
+<td align="center">(1+grad|spp) + (1+grad|site)</td>
 </tr>
 <tr class="even">
-<td>Null model</td>
-<td>-</td>
-<td>1</td>
+<td align="center">Null model</td>
+<td align="center">-</td>
+<td align="center">(1|spp) + (1|site) + (1|region)</td>
 </tr>
 </tbody>
 </table>
@@ -619,7 +626,7 @@ nineu.det.rt &lt;- m.full(ab=all.data$det,
                        control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                             optCtrl=list(maxfun=5e7))
                        )</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code>## Without traits
 envneu.det &lt;- m.full2(ab=all.data$det,
                       grad=all.data$grad,
@@ -630,7 +637,7 @@ envneu.det &lt;- m.full2(ab=all.data$det,
                       control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                            optCtrl=list(maxfun=5e7))
                       )</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code># Niche dynamics
 ## With traits
 niche.det.rt &lt;- m.niche(ab=all.data$det,
@@ -642,7 +649,7 @@ niche.det.rt &lt;- m.niche(ab=all.data$det,
                         control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                              optCtrl=list(maxfun=5e7))
                         )</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code>## W/o traits
 env.det &lt;- m.env(ab=all.data$det,
                  grad=all.data$grad,
@@ -652,7 +659,7 @@ env.det &lt;- m.env(ab=all.data$det,
                  control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                       optCtrl=list(maxfun=5e7))
                  )</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code>## Neutral dynamics
 neu.det &lt;- m.neutral(ab=all.data$det,
                      site=all.data$site,
@@ -662,7 +669,7 @@ neu.det &lt;- m.neutral(ab=all.data$det,
                        control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                             optCtrl=list(maxfun=5e7))
                        )</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code># Null hypothesis
 null.det &lt;- m.null(ab=all.data$det, 
                    site=all.data$site,
@@ -672,16 +679,16 @@ null.det &lt;- m.null(ab=all.data$det,
                        control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                             optCtrl=list(maxfun=5e7))
                        )</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code>## AIC for each model
 AICctab(nineu.det.rt, envneu.det, niche.det.rt, env.det, neu.det, null.det)</code></pre>
 <pre><code>##              dAICc   df
 ## nineu.det.rt     0.0 12
-## niche.det.rt   734.7 10
-## env.det       1629.5 9 
-## envneu.det    2480.8 11
-## neu.det       6277.8 4 
-## null.det     52400.9 4</code></pre>
+## niche.det.rt   576.4 10
+## env.det       1524.2 9 
+## envneu.det    2637.5 11
+## neu.det       6664.0 5 
+## null.det     51714.1 4</code></pre>
 </div>
 <div id="deterministic-community-w-wrong-traits-from-poisson-sample" class="section level5">
 <h5>Deterministic community w/ wrong traits, from poisson sample</h5>
@@ -696,7 +703,7 @@ nineu.det.wt &lt;- m.full(ab=all.data$det,
                        control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                             optCtrl=list(maxfun=5e7))
                        )</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code>## Niche dynamics 
 niche.det.wt &lt;- m.niche(ab=all.data$det,
                         trait=all.data$trait.wr,
@@ -707,16 +714,16 @@ niche.det.wt &lt;- m.niche(ab=all.data$det,
                         control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                              optCtrl=list(maxfun=5e7))
                         )</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code># AIC for each model
 AICctab(nineu.det.wt, envneu.det, niche.det.wt, env.det, neu.det, null.det)</code></pre>
 <pre><code>##              dAICc   df
 ## env.det          0.0 9 
-## envneu.det     851.3 11
-## nineu.det.wt  4540.0 12
-## neu.det       4648.2 4 
-## niche.det.wt 50696.7 10
-## null.det     50771.4 4</code></pre>
+## envneu.det    1113.4 11
+## nineu.det.wt  5005.4 12
+## neu.det       5139.9 5 
+## niche.det.wt 48585.2 10
+## null.det     50189.9 4</code></pre>
 </div>
 <div id="stochastic-community-w-right-traits-from-poisson-sample" class="section level5">
 <h5>Stochastic community w/ right traits, from poisson sample</h5>
@@ -733,7 +740,7 @@ nineu.sto.rt &lt;- m.full(ab=all.data$sto,
                                                          starttests = FALSE, kkt = FALSE)))</code></pre>
 <pre><code>## Warning in optwrap(optimizer, devfun, start, rho$lower, control =
 ## control, : convergence code 1 from optimx</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code>## Niche and neutral dynamics without species traits
 envneu.sto &lt;- m.full2(ab=all.data$sto,
                       grad=all.data$grad,
@@ -743,7 +750,11 @@ envneu.sto &lt;- m.full2(ab=all.data$sto,
                       family=&quot;poisson&quot;,
                       control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                            optCtrl=list(maxfun=5e7)))</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## Warning in checkConv(attr(opt, &quot;derivs&quot;), opt$par, ctrl =
+## control$checkConv, : unable to evaluate scaled gradient</code></pre>
+<pre><code>## Warning in checkConv(attr(opt, &quot;derivs&quot;), opt$par, ctrl =
+## control$checkConv, : Model failed to converge: degenerate Hessian with 2
+## negative eigenvalues</code></pre>
 <pre class="r"><code>## Niche dynamics
 niche.sto.rt &lt;- m.niche(ab=all.data$sto,
                         trait=all.data$trait,
@@ -753,7 +764,7 @@ niche.sto.rt &lt;- m.niche(ab=all.data$sto,
                         family=&quot;poisson&quot;,
                         control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                              optCtrl=list(maxfun=5e7)))</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code>## Niche dynamics
 env.sto &lt;- m.env(ab=all.data$sto,
                  grad=all.data$grad,
@@ -762,30 +773,30 @@ env.sto &lt;- m.env(ab=all.data$sto,
                  family=&quot;poisson&quot;,
                  control=glmerControl(optimizer=&quot;bobyqa&quot;, 
                                       optCtrl=list(maxfun=5e7)))</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code>## Neutral dynamics
 neu.sto &lt;- m.neutral(ab=all.data$sto,
                      site=all.data$site,
                      region=all.data$region, 
                      spp=all.data$sp,
                      family=&quot;poisson&quot;)</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code>## Null hypothesis
 null.sto &lt;- m.null(ab=all.data$sto, 
                    site=all.data$site,
                    region=all.data$region, 
                    spp=all.data$sp,
                    family=&quot;poisson&quot;)</code></pre>
-<pre><code>## singular fit</code></pre>
+<pre><code>## boundary (singular) fit: see ?isSingular</code></pre>
 <pre class="r"><code># AIC for each model
 AICctab(nineu.sto.rt, envneu.sto, niche.sto.rt, env.sto, neu.sto, null.sto)</code></pre>
 <pre><code>##              dAICc   df
-## neu.sto          0.0 4 
-## nineu.sto.rt     9.6 12
-## envneu.sto      10.5 11
-## null.sto     43018.8 4 
-## niche.sto.rt 43023.9 10
-## env.sto      43025.6 9</code></pre>
+## neu.sto          0.0 5 
+## nineu.sto.rt    12.0 12
+## envneu.sto     133.7 11
+## null.sto     43081.6 4 
+## env.sto      43089.7 9 
+## niche.sto.rt 43091.6 10</code></pre>
 </div>
 </div>
 </div>
@@ -808,67 +819,34 @@ table1 &lt;- table1[order(table1$Process),]</code></pre>
 <thead>
 <tr class="header">
 <th></th>
-<th align="left">Effect</th>
-<th align="left">Process</th>
-<th align="right">R2 Deterministic community w/ right traits</th>
-<th align="right">R2 Stochastic community w/ right traits</th>
+<th align="right">conditional</th>
+<th align="right">fixed</th>
+<th align="right">random</th>
+<th align="right">site</th>
+<th align="right">spp:site</th>
+<th align="right">spp:region</th>
+<th align="right">spp</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>5</td>
-<td align="left">conditional</td>
-<td align="left">all</td>
-<td align="right">0.9877382</td>
-<td align="right">0.9227801</td>
+<td>Deterministic community w/ right traits</td>
+<td align="right">0.9879604</td>
+<td align="right">0.8836327</td>
+<td align="right">0.1043276</td>
+<td align="right">0</td>
+<td align="right">0.0006204</td>
+<td align="right">0.0000000</td>
+<td align="right">0.1037072</td>
 </tr>
 <tr class="even">
-<td>7</td>
-<td align="left">random</td>
-<td align="left">all.random</td>
-<td align="right">0.1018443</td>
-<td align="right">0.9227801</td>
-</tr>
-<tr class="odd">
-<td>3</td>
-<td align="left">(1|spp:region)</td>
-<td align="left">neutral</td>
+<td>Stochastic community w/ right traits</td>
+<td align="right">0.9219763</td>
 <td align="right">0.0000000</td>
-<td align="right">0.9227801</td>
-</tr>
-<tr class="even">
-<td>4</td>
-<td align="left">(1|spp:site)</td>
-<td align="left">neutral</td>
-<td align="right">0.0007255</td>
-<td align="right">0.0000000</td>
-</tr>
-<tr class="odd">
-<td>8</td>
-<td align="left">(1|site)</td>
-<td align="left">neutral</td>
-<td align="right">NA</td>
-<td align="right">0.0000000</td>
-</tr>
-<tr class="even">
-<td>1</td>
-<td align="left">(1+grad|site)</td>
-<td align="left">niche</td>
-<td align="right">0.0000000</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td>2</td>
-<td align="left">(1|spp)</td>
-<td align="left">niche</td>
-<td align="right">0.1011189</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td>6</td>
-<td align="left">fixed</td>
-<td align="left">niche</td>
-<td align="right">0.8858939</td>
+<td align="right">0.9219763</td>
+<td align="right">0</td>
+<td align="right">0.0000172</td>
+<td align="right">0.9219591</td>
 <td align="right">0.0000000</td>
 </tr>
 </tbody>
@@ -878,82 +856,6 @@ table1 &lt;- table1[order(table1$Process),]</code></pre>
 <div id="are-random-effects-only-capturing-neutral-dynamics-or-uninformed-species-traits-are-inflating-random-effects" class="section level4">
 <h4>4.2. Are random effects only capturing neutral dynamics or uninformed species traits are inflating random effects?</h4>
 <p>In order to examine how random effects reflect uninformed traits, we compare the results of the selected model from deterministic communities with right and wrong traits.</p>
-<pre class="r"><code>r2.det.wt &lt;- r2.env(env.det, null.model = neu.det)$full.table
-
-## Creating table
-table2 &lt;- merge(r2.det.rt, r2.det.wt, by=c(&quot;component&quot;, &quot;type&quot;), all.x=TRUE, all.y=TRUE)
-colnames(table2) &lt;- c(&quot;Effect&quot;, &quot;Process&quot;, &quot;R2 Deterministic community w/ right traits&quot;, 
-                   &quot;R2 Deterministic community w/ wrong traits&quot;)
-table2 &lt;- table2[order(table2$Process),]</code></pre>
-<table>
-<thead>
-<tr class="header">
-<th></th>
-<th align="left">Effect</th>
-<th align="left">Process</th>
-<th align="right">R2 Deterministic community w/ right traits</th>
-<th align="right">R2 Deterministic community w/ wrong traits</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>5</td>
-<td align="left">conditional</td>
-<td align="left">all</td>
-<td align="right">0.9877382</td>
-<td align="right">0.9914054</td>
-</tr>
-<tr class="even">
-<td>7</td>
-<td align="left">random</td>
-<td align="left">all.random</td>
-<td align="right">0.1018443</td>
-<td align="right">0.8199592</td>
-</tr>
-<tr class="odd">
-<td>3</td>
-<td align="left">(1|spp:region)</td>
-<td align="left">neutral</td>
-<td align="right">0.0000000</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td>4</td>
-<td align="left">(1|spp:site)</td>
-<td align="left">neutral</td>
-<td align="right">0.0007255</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td>1</td>
-<td align="left">(1+grad|site)</td>
-<td align="left">niche</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000024</td>
-</tr>
-<tr class="even">
-<td>2</td>
-<td align="left">(1|spp)</td>
-<td align="left">niche</td>
-<td align="right">0.1011189</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td>6</td>
-<td align="left">fixed</td>
-<td align="left">niche</td>
-<td align="right">0.8858939</td>
-<td align="right">0.1714462</td>
-</tr>
-<tr class="even">
-<td>8</td>
-<td align="left">(1+grad|spp)</td>
-<td align="left">niche</td>
-<td align="right">NA</td>
-<td align="right">0.8199568</td>
-</tr>
-</tbody>
-</table>
 <p>Only looking into the <span class="math inline">\(R^{2}\)</span> conditional values, one cannot examine difference between deterministic communities built by uninformative and informative species traits. However, by examining the partition <span class="math inline">\(R^{2}\)</span> values, one can detect if traits used in the model are actually influencing species abundances. Uninformative traits inflate marginal <span class="math inline">\(R^{2}\)</span> because of the importance of the term related to the random effects of species (env|spp). The influence of the trait-environment interaction (‘trait:grad’) declines, and so the repeatability of fixed effects, that include this interaction. When traits are informative and niche dynamics are preponderant, <span class="math inline">\(R^{2}\)</span> for fixed effects should be particularly high.</p>
 </div>
 </div>

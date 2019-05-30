@@ -6,12 +6,11 @@ output:
  html_document:
     toc: true
     toc_float: true
-
 ---
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)#, cache=TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
 ```
 
 ### The framework
@@ -67,7 +66,6 @@ In order to address main criticisms of our framework, we analyze into three scen
   abundance from Poisson sample
 
 <!-- Tiramos o: Stochastic community with right traits from Negative Binomial sample--> 
-
 
 ### 1. Building simulated communities
 
@@ -334,14 +332,15 @@ implicity fo models with the term 1+grad|spp). Therefore, this random
 effect does not represent neutral or dynamics, but an indiosyncratic
 effect of species allowing a random intercept for species abundances.
 
-Hypothesis | Fixed effects | Random Effects
------------|---------------|----------------
-Neutral and niche dynamics | trait + grad + I(grad^2) | 1|spp + 1|spp:site + 1|spp:region + 1+grad|spp 1+grad|site
- | grad + I(grad^2) | 1|spp + 1|spp:site + 1|spp:region + 1+grad|spp + 1+grad|site
-Solely neutral dynamics | - | 1|spp + 1|spp:site + 1|spp:region
-Solely niche dynamics | trait + grad + I(grad^2)| 1|spp + 1+grad|site
- | grad + I(grad^2)| 1+grad|spp + 1+grad|site
-Null model | - | 1|spp + 1|site + 1|region
+
+|Hypothesis | Fixed Effects | Random Effects|
+|:-----------------------:|:--------------------------:|:-------------------------------------------:|
+|Neutral and niche dynamics | trait * (grad + I(grad^2)) | (1\|spp) + (1+grad\|site)  + (1\|spp:site) + (1\|spp:region)|
+| | grad + I(grad^2)  | (1+grad\|spp) + (1+grad\|site) + (1\|spp:site) + (1\|spp:region)|
+|Solely neutral dynamics | - | (1\|site) + (1\|spp:site) + (1\|spp:region) |
+|Solely niche dynamics | trait * (grad + I(grad^2))  |(1\|spp) + (1+grad\|site)  |
+| | grad + I(grad^2)| (1+grad\|spp) + (1+grad\|site) |
+|Null model | - | (1\|spp) + (1\|site) + (1\|region) |
 
 ### 3. Buildind the models 
 
@@ -652,18 +651,18 @@ In order to examine how random effects reflect uninformed traits, we
 compare the results of the selected model from deterministic
 communities with right and wrong traits.
 
-```{r test 4.2 right-wrong}
-r2.det.wt <- r2.env(env.det, null.model = neu.det)$full.table
+```{r test 4.2 right-wrong, echo=FALSE}
+#r2.det.wt <- r2.env(env.det, null.model = neu.det)$full.table
 
 ## Creating table
-table2 <- merge(r2.det.rt, r2.det.wt, by=c("component", "type"), all.x=TRUE, all.y=TRUE)
-colnames(table2) <- c("Effect", "Process", "R2 Deterministic community w/ right traits", 
-                   "R2 Deterministic community w/ wrong traits")
-table2 <- table2[order(table2$Process),]
+#table2 <- merge(r2.det.rt, r2.det.wt, by=c("component", "type"), all.x=TRUE, all.y=TRUE)
+#colnames(table2) <- c("Effect", "Process", "R2 Deterministic community w/ right traits", 
+#                   "R2 Deterministic community w/ wrong traits")
+#table2 <- table2[order(table2$Process),]
 ```
 
 ```{r table2, echo=FALSE, results='asis'}
-kable(table2)
+#kable(table2)
 ## Most of conditional R2 goes to 1|spp and not to 1|spp:site or 1|spp:region, check
 ```
 
