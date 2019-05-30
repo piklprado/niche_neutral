@@ -11,7 +11,7 @@ output:
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
+knitr::opts_chunk$set(echo = TRUE)#, cache=TRUE)
 ```
 
 ### The framework
@@ -407,7 +407,7 @@ all.data %>%
     ggplot(aes(grad, sto)) + geom_line(aes(colour=region)) + facet_wrap(~spp) +
     scale_y_log10() + 
     labs(x="Environmental gradient", y="Species abundance",
-         title=paste("Deterministic community from Poisson sample"))
+         title=paste("Stochastic community from Poisson sample"))
 ```
 
 
@@ -625,12 +625,13 @@ distribution.
 
 ```{r test 4.1}
 #Calculating R2
-r2.det.rt <- r2.full(nineu.det.rt, null.model = neu.det)$R2
-r2.sto <- r2.neutral(neu.sto, null.model = neu.sto)$R2
+r2.det.rt <- r2.full(nineu.det.rt, null.model = neu.det)$full.table
+r2.sto <- r2.neutral(neu.sto, null.model = neu.sto)$full.table
 
-table1 <- as.data.frame(bind_rows(r2.det.rt, r2.sto))
-row.names(table1) <- c("Deterministic community w/ right traits", 
-                   "Stochastic community w/ right traits")
+table1 <- merge(r2.det.rt, r2.sto, by=c("component", "type"), all.x=TRUE, all.y=TRUE)
+colnames(table1) <- c("Effect", "Process", "R2 Deterministic community w/ right traits", 
+                   "R2 Stochastic community w/ right traits")
+table1 <- table1[order(table1$Process),]
 ```
 
 
@@ -652,12 +653,13 @@ compare the results of the selected model from deterministic
 communities with right and wrong traits.
 
 ```{r test 4.2 right-wrong}
-r2.det.wt <- r2.full2(envneu.det, null.model = neu.det)$R2
+r2.det.wt <- r2.env(env.det, null.model = neu.det)$full.table
 
 ## Creating table
-table2 <- as.data.frame(bind_rows(r2.det.rt, r2.det.wt))
-row.names(table2) <- c("Deterministic community w/ right traits", 
-                    "Deterministic community w/ wrong traits")
+table2 <- merge(r2.det.rt, r2.det.wt, by=c("component", "type"), all.x=TRUE, all.y=TRUE)
+colnames(table2) <- c("Effect", "Process", "R2 Deterministic community w/ right traits", 
+                   "R2 Deterministic community w/ wrong traits")
+table2 <- table2[order(table2$Process),]
 ```
 
 ```{r table2, echo=FALSE, results='asis'}
