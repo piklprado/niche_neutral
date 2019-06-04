@@ -72,6 +72,9 @@ ab.mean
 
 plot(freq ~ ab.mean)
 
+## Heat map of the species x sites matrix
+image(x=1:nrow(sp.site), y=1:ncol(sp.site), log(sp.site[,order(-ab.meta)]))
+    
 #### Will indentify species as abundant (first 40 in rank) and rare (other)
 ab.rare <- data.frame(spp=unique(fern.data$spp),
                         ab.rare=ifelse(sp%in%sp[indice.sp], "abundant", "rare"))
@@ -116,7 +119,7 @@ m.full2b.ab <- update(m.full2.ab, start=ss)
 
 m.neutral.ab <- glmer(abundance ~
                       #    (1|spp)
-                      + (1|spp:region) + (1|spp:site) + (1|site),
+                       (1|spp:region) + (1|spp:site) + (1|site),
                    data=fern.data.ab, family="poisson",
                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
@@ -166,10 +169,10 @@ m.full2.rar <- glmer(abundance ~ grad + I(grad^2)
                  control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 m.neutral.rar <- glmer(abundance ~
-                       #    (1|spp)
-                       + (1|spp:region) + (1|spp:site) + (1|site),
-                   data=fern.data.rare, family="poisson",
-                   control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
+                           ##    (1|spp) +
+                           (1|spp:region) + (1|spp:site) + (1|site),
+                       data=fern.data.rare, family="poisson",
+                       control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
 m.niche.rar <- glmer(abundance ~ thickness*grad + thickness*I(grad^2)
                  ##+ indumentum*grad + indumentum*I(grad^2)
@@ -226,37 +229,44 @@ ggplot(r2.df, aes(fill=type, y=R2, x=group)) +
 ##################################################################
 
 ### calculando os previstos
-pred.values <- predict(m.full.ab, re.form=NULL, type='response') 
+pred.values <- predict(m.full.ab, re.form=NULL, type='response')
+pred.values.log <- predict(m.full.ab, re.form=NULL) 
 # changed to type=response to have abundance back on original scale
 pred.values2 <- predict(m.neutral.rar, re.form=NULL, type='response')
 
 # Auxiliar function to calculate mean, sd, lower and upper interval of abundance values
-mod.df <- function(values, data) {
-mod.table <- aggregate(values, 
+mod.df <- function(values, data, log.val=FALSE) {
+    if(log.val)
+        values <- ifelse(values>0 , log(values), NA)
+    mod.table <- aggregate(values, 
                         list(altitude=data[,'altitude'], 
                              thickness=data[,'thickness'],
-                             life_form=data[,'life_form']), mean)
-mod.table$sd <- aggregate(values, 
-                        list(altitude=data[,'altitude'], 
-                             thickness=data[,'thickness'],
-                             life_form=data[,'life_form']), sd)$x 
-mod.table$plwr <- mod.table$x - mod.table$sd
-mod.table$pupr <- mod.table$x + mod.table$sd
-names(mod.table)[4] <- "Abundance"
-return(mod.table)
+                             life_form=data[,'life_form']), mean, na.rm=TRUE)
+    mod.table$sd <- aggregate(values, 
+                              list(altitude=data[,'altitude'], 
+                                   thickness=data[,'thickness'],
+                                   life_form=data[,'life_form']), sd, na.rm=TRUE)$x 
+    mod.table$plwr <- mod.table$x - mod.table$sd
+    mod.table$pupr <- mod.table$x + mod.table$sd
+    names(mod.table)[4] <- "Abundance"
+    return(mod.table)
 }
 
 # Predicted values
 ## table for abundant
 pred.table <- mod.df(pred.values, fern.data.ab)
+pred.table.log <- mod.df(pred.values.log, fern.data.ab)
 ## table for rare 
 pred.table2 <- mod.df(pred.values2, fern.data.rare)
 
 # Observed values
 ## table for abundant
 obs <- mod.df(fern.data.ab$abundance, fern.data.ab)
+obs.log <- mod.df(fern.data.ab$abundance+0.1, fern.data.ab, log=TRUE)
 ## table for rare 
 obs.rar <- mod.df(fern.data.rare$abundance, fern.data.rare)
+
+
 
 
 #############################################
@@ -278,20 +288,42 @@ nomes <- c(ep="epiphyte", hemi="hemiepiphyte", ter="terrestrial", coriacea="cori
 #### Grafico com a previsao dos modelos ####
 #############################################
 
+## Acho que é melhor usar o predictInterval do que predict para calcular previstos e intervalos
+## Mil simulacçoes dos previstos para cada observacao, efeitos fixos e aleatorios
+pred.ab.log <- merTools::predictInterval(m.full.ab, which="full", type="linear.prediction", level=0.95)
+pred.grad.ab <- cbind(fern.data.ab, pred.ab.log) %>%
+    group_by(altitude,thickness,life_form) %>%
+    summarise(Abundance=mean(exp(fit)), plwr=quantile(exp(fit),0.025), pupr=quantile(exp(fit),0.975))
+
 ## Um grafico rapido
 #pdf("../figures/abundant_gradient.pdf")
 obs %>%
-    mutate(Altitude=rep(unique(altitude), 6)) %>%
-    ggplot(aes(Altitude, Abundance)) +
-    ylab("Abundance (log)") + #scale_y_log10() + # making only y axis in log and not abundance values
-    facet_grid(thickness ~ life_form, labeller=as_labeller(nomes)) +
+    ##    mutate(Altitude=rep(unique(altitude), 6)) %>%
+    ggplot(aes(altitude, Abundance)) +
+    ylab("Abundance") +
+    #scale_y_log10() + # making only y axis in log and not abundance values
+    facet_wrap(thickness ~ life_form, labeller=as_labeller(nomes), scale="free") +
     geom_point(colour=cores, size=3) +
     geom_linerange(aes(ymin=plwr, ymax=pupr), colour=cores) +
     geom_ribbon(aes(x=altitude, y=Abundance, ymin=plwr, ymax=pupr), 
-                data=pred.table, alpha=0.1) +
+                data=pred.grad.ab, alpha=0.1)+
     theme_classic(base_size=15) #+
 #    theme(strip.background = element_blank(), strip.text = element_blank())
 #dev.off()
+
+## Uma alternativa melhor: os pontos jittered, linha do previsto e barras do IC 95% do previsto
+fern.data.ab %>%
+    ggplot(aes(factor(altitude), abundance+0.1)) +
+    ylab("Abundance") +
+    scale_y_log10() + # making only y axis in log and not abundance values
+    facet_wrap(thickness ~ life_form, labeller=as_labeller(nomes), scale="free") +
+    geom_point(position="jitter", col="blue", size=0.75) +
+#    geom_boxplot(color="gray", alpha=0.5) + ## boxplots não estão ajudando muito
+    geom_line(aes(x=factor(altitude), y=Abundance, group=1), data=pred.grad.ab) +
+    geom_linerange(aes(x=factor(altitude), y=Abundance, ymin=plwr, ymax=pupr), 
+                data=pred.grad.ab, alpha=0.5) +
+    theme_classic(base_size=15)
+
 
 #########################################
 #### Grafico SADS  #####################
@@ -431,6 +463,7 @@ dev.off()
 
 head(fern.data.ab)
 
+## Predicted for a single region
 spp <- unique(fern.data.ab$spp)
 grad <- unique(fern.data.ab$grad)
 site <- unique(fern.data.ab$site)
@@ -443,6 +476,151 @@ newdata <- data.frame(spp=rep(spp, each=length(site)),
 
 head(newdata)
 
-mf2.pi.all <- merTools::predictInterval(m.full.ab,  which="all", type="linear.prediction", level=0.95)
+mf2.pi.all <- merTools::predictInterval(m.full.ab,  newdata, which="all", type="linear.prediction", level=0.95)
+
+## Predicted for abundant species by the selected model
+pred.ab <- merTools::predictInterval(m.full.ab,  which="all", type="linear.prediction", level=0.95)
+## Predicted for abundant species by the neutral model
+pred.ab.neu <- merTools::predictInterval(m.neutral.ab,  which="all", type="linear.prediction", level=0.95)
+## Predicted for rare species
+pred.rare <- merTools::predictInterval(m.neutral.rar,  which="all", type="linear.prediction", level=0.95)
+
+## Mean expected abundances in function of altitude for all species by the combination of the best models
+all.preds <- rbind( cbind(fern.data.ab,combined=pred.ab[pred.ab$effect=="combined","fit"],
+                          fixed=pred.ab[pred.ab$effect=="fixed","fit"]),
+                   cbind(fern.data.rare, combined=pred.rare[pred.rare$effect=="combined","fit"],
+                         fixed =pred.rare[pred.rare$effect=="fixed","fit"]))
+## The same, for neutral models for both specie groups
+all.preds.n <- rbind( cbind(fern.data.ab,combined=pred.ab.neu[pred.ab.neu$effect=="combined","fit"],
+                          fixed=pred.ab.neu[pred.ab.neu$effect=="fixed","fit"]),
+                   cbind(fern.data.rare, combined=pred.rare[pred.rare$effect=="combined","fit"],
+                         fixed =pred.rare[pred.rare$effect=="fixed","fit"]))
+
+## Prediction by altitude: whole model and only the random part + intercept
+all.preds %>%
+    mutate(random = combined - fixed + ifelse(ab.rare=="rare", fixef(m.neutral.rar)[1] , fixef(m.full.ab)[1])) %>%
+    group_by(spp,altitude, ab.rare) %>%
+    summarise(mean.obs=mean(abundance), mean.comb = mean(exp(combined)), mean.random = mean(exp(random))) %>%
+    filter(mean.obs>0) %>%
+    group_by(altitude) %>%
+    mutate(sp.rank=rank(-mean.obs, ties.method="first"),
+           sp.rank.c=rank(-mean.comb, ties.method="first"),
+           sp.rank.r=rank(-mean.random, ties.method="first")) %>%
+    ggplot(aes(sp.rank, mean.obs)) +
+    geom_point(aes(color=ab.rare)) +
+    geom_line(aes(sp.rank.r,mean.random), color="blue") +
+    geom_line(aes(sp.rank.c,mean.comb)) +
+    scale_y_log10()+
+    facet_wrap(~altitude)
 
 
+## Mean expected abundances in function of altitude for all species by the combination of neutral models
+all.preds.n %>%
+    group_by(spp,altitude, ab.rare) %>%
+    summarise(mean.obs=mean(abundance), mean.pred = mean(exp(combined))) %>%
+    filter(mean.obs>0) %>%
+    group_by(altitude) %>%
+    mutate(sp.rank=rank(-mean.obs, ties.method="first"), sp.rank.p=rank(-mean.pred, ties.method="first")) %>%
+    ggplot(aes(sp.rank, mean.obs)) +
+    geom_point(aes(color=ab.rare)) +
+    geom_line(aes(sp.rank,mean.pred)) +
+    scale_y_log10()+
+    facet_wrap(~altitude)
+
+## Comparing observed x predicted abundances by altitude for the neutral model
+all.preds.n %>%
+    group_by(spp,altitude, ab.rare) %>%
+    summarise(mean.obs=mean(abundance), mean.pred = mean(exp(combined))) %>%
+    filter(mean.obs>0) %>%
+    group_by(altitude) %>%
+    mutate(sp.rank=rank(-mean.obs, ties.method="first"), sp.rank.p=rank(-mean.pred, ties.method="first")) %>%
+    ggplot(aes(mean.obs, mean.pred)) +
+    geom_point(aes(color=ab.rare)) +
+    geom_abline(intercept=0,slope=1) +
+    scale_y_log10()+
+    scale_x_log10()+
+    facet_wrap(~altitude)
+
+## Average sads at each altitude
+fern.data.new %>%
+    group_by(spp,altitude, ab.rare) %>%
+    summarise(mean.obs=mean(abundance), ab.sd=sd(abundance)) %>%
+    filter(mean.obs>0) %>%
+    group_by(altitude) %>%
+    mutate(sp.rank=rank(-mean.obs, ties.method="first")) %>%
+    ggplot(aes(sp.rank, mean.obs)) +
+    geom_point(aes(color=ab.rare))+
+    scale_y_log10()+
+    facet_wrap(~altitude)
+
+## Sads of each region by altitude
+fern.data.new %>%
+    filter(abundance>0) %>%
+    group_by(region,altitude) %>%
+    mutate(sp.rank=rank(-abundance, ties.method="first")) %>%
+    ggplot(aes(sp.rank, abundance, group=region)) +
+    geom_point(aes(color=region))+
+    geom_line(aes(color=region))+
+    scale_y_log10()+
+    facet_wrap(~altitude)
+## With predicted by neutral model
+all.preds.n %>%
+    filter(exp(combined)>=1) %>%
+    group_by(region,altitude) %>%
+    mutate(sp.rank=rank(-abundance, ties.method="first"), sp.rank.p=rank(-combined, ties.method="first")) %>%
+    ggplot(aes(sp.rank, abundance, group=region)) +
+    geom_point(aes(color=region))+
+    #geom_line(aes(color=region))+
+    geom_line(aes(sp.rank.p, exp(combined), color=region)) +
+    scale_y_log10()+
+    facet_wrap(~altitude)
+    
+
+## Metacommunity sad
+fern.data.new %>%
+    group_by(spp, ab.rare) %>%
+    summarise(mean.obs=mean(abundance), ab.sd=sd(abundance)) %>%
+    filter(mean.obs>0) %>%
+    ungroup() %>%
+    mutate(sp.rank=rank(-mean.obs, ties.method="first")) %>%
+    ggplot(aes(sp.rank, mean.obs)) +
+    geom_point(aes(color=ab.rare))+
+    scale_y_log10()
+    
+## Metacommunity with predicted by neutral and neutral(rare) + full (abundante) model
+pred.meta.n <- all.preds.n %>%
+    mutate(random = combined - fixed + ifelse(ab.rare=="rare", -7.423885 , -5.4628480)) %>%
+    group_by(spp, ab.rare) %>%
+    summarise(mean.obs=sum(abundance), mean.comb = sum(exp(combined)), mean.random = sum(exp(random))) %>%
+    ungroup() %>%
+    mutate(sp.rank=rank(-mean.obs, ties.method="first"),
+           sp.rank.c=rank(-mean.comb, ties.method="first"),
+           sp.rank.r=rank(-mean.random, ties.method="first"))
+
+all.preds %>%
+    mutate(random = combined - fixed + ifelse(ab.rare=="rare", -7.423885 , -5.4628480)) %>%
+    group_by(spp, ab.rare) %>%
+    summarise(mean.obs=sum(abundance), mean.comb = sum(exp(combined)), mean.random = sum(exp(random))) %>%
+    ungroup() %>%
+    mutate(sp.rank=rank(-mean.obs, ties.method="first"),
+           sp.rank.c=rank(-mean.comb, ties.method="first"),
+           sp.rank.r=rank(-mean.random, ties.method="first")) %>%
+    ggplot(aes(sp.rank, mean.obs)) +
+    geom_point(aes(color=ab.rare)) +
+    ##geom_line(aes(sp.rank.r,mean.random), color="blue") +
+    geom_line(aes(sp.rank.c,mean.comb), data=pred.meta.n, col="blue") +
+    geom_line(aes(sp.rank.c,mean.comb)) +   
+    scale_y_log10()
+
+## Comparing observed x predicted abundances in the metacommunity for the neutral model
+all.preds.n %>%
+    group_by(spp,ab.rare) %>%
+    summarise(mean.obs=mean(abundance), mean.pred = mean(exp(combined))) %>%
+    filter(mean.obs>0) %>%
+    ungroup() %>%
+    mutate(sp.rank=rank(-mean.obs, ties.method="first"), sp.rank.p=rank(-mean.pred, ties.method="first")) %>%
+    ggplot(aes(mean.obs, mean.pred)) +
+    geom_point(aes(color=ab.rare)) +
+    geom_abline(intercept=0,slope=1) +
+    scale_y_log10()+
+    scale_x_log10()
