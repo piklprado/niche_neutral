@@ -502,11 +502,11 @@ fig.meta2 <- fern.data[fern.data$spp==sads.meta$spp[sads.meta$sp.rank==1],]%>%
     ggplot(aes(altitude, abundance)) +
     stat_smooth(se=FALSE, aes(color=region), alpha=0.5, span=0.6) +
     geom_jitter(aes(color=region), size=2.5, alpha=0.5) +
-    labs(title = expression(bold("Core:")~italic("Nome da espécie")),
+    labs(title = expression(bold("Core:")~italic("Polybotrya cylindrica")),
                             x = "", y = "Abundance", color = "Region")
 ## 3rd panel: Most abundant of occasional species
 fig.meta3 <- fig.meta2 %+% fern.data[fern.data$spp==sads.meta$spp[sads.meta$sp.rank==41],] +
-    labs(title = expression(bold("Occasional:")~italic("Nome da espécie")),
+    labs(title = expression(bold("Occasional:")~italic("Trichomanes polypodioides")),
                             x = "", y = "", color = "Region")
 ## Arranging all panels in a sigle figure, publication quality (see functions.R)
 ## List of panels
