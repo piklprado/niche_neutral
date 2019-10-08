@@ -90,6 +90,9 @@ head(fern.data.new)
 fern.data.ab <- fern.data.new[fern.data.new$ab.rare=="abundant",]
 fern.data.rare <- fern.data.new[fern.data.new$ab.rare=="rare",]
 
+#write.table(fern.data.new, "../results/fern_data_output.csv",
+#            col.names=FALSE, row.names=TRUE, sep=',')
+
 #####################################################################
 # PART 3: building the model to represent our hypothesis ############
 # Step by step building models corresponding to general hypothesis #
@@ -118,17 +121,17 @@ ss <- getME(m.full2.ab, c("theta","fixef"))
 m.full2b.ab <- update(m.full2.ab, start=ss)
 
 m.neutral.ab <- glmer(abundance ~
-                      #    (1|spp)
-                       (1|spp:region) + (1|spp:site) + (1|site),
-                   data=fern.data.ab, family="poisson",
-                   control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
+                                        #    (1|spp)
+                          (1|spp:region) + (1|spp:site) + (1|site),
+                      data=fern.data.ab, family="poisson",
+                      control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=1e6)))
 
 m.niche.ab <- glmer(abundance ~ thickness*grad + thickness*I(grad^2)
                  ##+ indumentum*grad + indumentum*I(grad^2)
-                 +  life_form*grad + life_form*I(grad^2)
-                 + (1|spp) + (1+grad|site),
-                 data=fern.data.ab, family="poisson",
-                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
+                    +  life_form*grad + life_form*I(grad^2)
+                    + (1|spp) + (1+grad|site),
+                    data=fern.data.ab, family="poisson",
+                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 m.env.ab <- glmer(abundance ~ grad + I(grad^2)
                + (1+grad|site) + (1+grad|spp),
@@ -176,10 +179,10 @@ m.neutral.rar <- glmer(abundance ~
 
 m.niche.rar <- glmer(abundance ~ thickness*grad + thickness*I(grad^2)
                  ##+ indumentum*grad + indumentum*I(grad^2)
-                 +  life_form*grad + life_form*I(grad^2)
-                 + (1|spp) + (1+grad|site),
-                 data=fern.data.rare, family="poisson",
-                 control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
+                     +  life_form*grad + life_form*I(grad^2)
+                     + (1|spp) + (1+grad|site),
+                     data=fern.data.rare, family="poisson",
+                     control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=5e6)))
 
 m.env.rar <- glmer(abundance ~ grad + I(grad^2)
                + (1+grad|site) + (1+grad|spp),
@@ -471,6 +474,11 @@ all.preds <- rbind( cbind(fern.data.ab,combined=pred.ab[pred.ab$effect=="combine
                           fixed=pred.ab[pred.ab$effect=="fixed","fit"]),
                    cbind(fern.data.rare, combined=pred.rare[pred.rare$effect=="combined","fit"],
                          fixed =pred.rare[pred.rare$effect=="fixed","fit"]))
+
+## writing predicted values
+#write.table(all.preds, '../results/predicted.csv',
+#            col.names=TRUE, row.names=FALSE, sep=",")
+
 ## Log of mean of observed values, log of sds of predicted by total and random effects + intercepts
 sads.meta <- all.preds %>%
     mutate(random = combined - fixed +
