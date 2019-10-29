@@ -1,9 +1,15 @@
-.Rproj
-.RData
-.RHistory
-.Rhistory
-*~
-SIM_OUTPUT/
-.Rproj.user
+# R related files
+*.Rproj
 *.RData
-RData/
+*.RHistory
+*.Rhistory
+.Rproj.user
+
+# emacs backup files
+*~
+
+# dirs
+SIM_OUTPUT/
+ignore/
+manuscript/
+

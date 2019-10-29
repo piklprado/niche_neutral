@@ -42,7 +42,8 @@ fern.data$site <- factor(rep(1:30, length(unique(fern.data$spp))))
 sp <- unique(fern.data$spp)
     
 ### Creating sp site matrix
-sp.site <- cast(fern.data, site + altitude ~ spp, value='abundance', FUN=mean)
+sp.site <- cast(fern.data, site + altitude ~ spp,
+                value = 'abundance', FUN = mean)
 sp.site
 
 site <- sp.site$site
