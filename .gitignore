@@ -5,3 +5,5 @@
 *~
 SIM_OUTPUT/
 .Rproj.user
+*.RData
+RData/

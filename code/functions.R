@@ -64,7 +64,7 @@ m.null <- function(ab, site, region, spp, ...){
 ################################################################################
 
 
-### Funtion for the full model
+### Function for the full model
 ## PI: added 'null.model' argument and '...' argument to the fit of the null model (to allow optmization control)
 r2.full <- function(model, null.model, ...){
     ## Function to calculate the null model, model with all random terms
