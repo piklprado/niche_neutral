@@ -1,9 +1,9 @@
-# niche_neutral
+# Tailoring species abundance distributions to untie niche and neutral processes
 
 Code for Mortara et al niche and neutral dynamics
 
-- code is at /code/code_separating_abundant_species.r
+- code is at /code, numbered
 - original data is at /data
 - tutorial for appendix is at /tutorial/ -- we need to separate code for generation of data from tutorial 
 - figures for the manuscript at /figures/
-- text at /manuscript/ 
+- text at [overleaf](https://www.overleaf.com/project/5d1d047e8ca02e5f56d3d212)
