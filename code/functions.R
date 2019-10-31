@@ -2,6 +2,8 @@ library(grid)
 library(ggthemes)
 library(scales)
 library(gridExtra)
+library(lme4)
+library(bbmle)
 
 ################################################################################
 ## Functions to fit the competing models to abundance data
