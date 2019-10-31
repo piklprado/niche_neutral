@@ -3,7 +3,7 @@
 # Mortara et al #####################################################################
 #####################################################################################
 
-## Code for making graphics 
+## Code for making graphics
 ## Sara Mortara and Paulo Inacio Prado
 
 ## loading packages
@@ -19,6 +19,8 @@ source("functions.R")
 all.preds <- read.csv("../results/predicted.csv")
 sads.meta <- read.csv("../results/sads_metacommunity.csv")
 fern.data <- read.csv("../data/data_for_modeling.csv")
+
+head(sads.meta)
 
 ### The figure ###
 ## 1st panel of the figure: RAD with total and random part of standard deviations
@@ -47,16 +49,18 @@ fig.meta3 <- fig.meta2 %+% fern.data[fern.data$spp==sads.meta$spp[sads.meta$sp.r
 ## Arranging all panels in a sigle figure, publication quality (see functions.R)
 ## List of panels
 fig.meta.list <- list(
-    fig.meta1 + scale_colour_Publication()+ theme_Publication(),
-    fig.meta2 + scale_colour_Publication()+ theme_Publication() + theme(legend.position = "none"),
-    fig.meta3 + scale_colour_Publication()+ theme_Publication()
+    fig.meta1 + scale_colour_Publication() + theme_Publication() +,
+    fig.meta2 + scale_colour_Publication() + theme_Publication() + theme(legend.position = "none"),
+    fig.meta3 + scale_colour_Publication() + theme_Publication()
 )
 
 ## Arrange with grid.arrange
 cairo_pdf("../figures/rad_mettacomunity.pdf", width = 9, height = 7.5)
+
 grid.arrange(
     grobs=fig.meta.list,
     bottom=textGrob("Altitude (m)", gp=gpar(fontface = "bold", cex=1.2), vjust=-1.25),
     layout_matrix=matrix(c(1,1,2,3), ncol=2, byrow=TRUE)
 )
+
 dev.off()
