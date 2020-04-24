@@ -6,7 +6,7 @@ Code for Mortara et al niche and neutral dynamics
 - original data is at /data
 - tutorial for appendix is at /tutorial/ -- we need to separate code for generation of data from tutorial 
 - figures for the manuscript at /figures/
-- text at [overleaf](https://www.overleaf.com/project/5d1d047e8ca02e5f56d3d212)
+- text at [overleaf](https://www.overleaf.com/project/5d1d047e8ca02e5f56d3d212) or saramortara/manuscript_niche_neutral
 
 ### TODO
 
