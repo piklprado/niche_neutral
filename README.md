@@ -10,7 +10,7 @@ Code for Mortara et al niche and neutral dynamics
 
 ### TODO
 
-[ ] standardize nomenclature in manuscript niche/neutral -> Vellend's big four
-[ ] review discussion
-[ ] cover letter
-[ ] organize tutorial
+- [ ] standardize nomenclature in manuscript niche/neutral -> Vellend's big four
+- [ ]  review discussion
+- [ ] cover letter
+- [ ] organize tutorial
