@@ -1,4 +1,4 @@
-# Tailoring species abundance distributions to untie niche and neutral processes
+# Tailoring species abundance distributions to untie selection and drift processes
 
 Code for Mortara et al selection and drift dynamics
 
