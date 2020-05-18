@@ -17,7 +17,7 @@ library(reshape)
 ############################
 
 # reading data
-fern.data <- read.csv("data/data_original.csv", as.is = TRUE)
+fern.data <- read.csv("../data/data_original.csv", as.is = TRUE)
 head(fern.data)
 # changing column names
 names(fern.data)[c(2, 4, 9)] <- c("spp", "region", "grad")
@@ -77,11 +77,11 @@ fern.data.ab <- fern.data.new[fern.data.new$ab.rare == "abundant", ]
 fern.data.rare <- fern.data.new[fern.data.new$ab.rare == "rare", ]
 
 write.table(fern.data.new,
-            "data/data_for_modeling.csv",
+            "../data/data_for_modeling.csv",
             col.names = TRUE, row.names = FALSE, sep = ",")
 
 write.table(fern.data.ab,
-            "data/data_ab_for_modeling.csv",
+            "../data/data_ab_for_modeling.csv",
             col.names = TRUE, row.names = FALSE, sep = ",")
 
 write.table(fern.data.rare,
