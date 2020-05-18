@@ -17,7 +17,7 @@ library(reshape)
 ############################
 
 # reading data
-fern.data <- read.csv("../data/fern_data_Mortaraetal.csv", as.is=TRUE)
+fern.data <- read.csv("data/data_original.csv", as.is = TRUE)
 head(fern.data)
 # changing column names
 names(fern.data)[c(2, 4, 9)] <- c("spp", "region", "grad")
@@ -27,7 +27,7 @@ fern.data <- na.omit(fern.data) # tem 60 NA's de indumento e espessura de folha.
 # creating vector with site id
 fern.data$site <- factor(rep(1:30, length(unique(fern.data$spp))))
 sp <- unique(fern.data$spp)
-    
+
 ### Creating sp site matrix
 sp.site <- cast(fern.data, site + altitude ~ spp,
                 value = 'abundance', FUN = mean)
@@ -36,7 +36,7 @@ sp.site
 site <- sp.site$site
 altitude <- sp.site$altitude
 
-sp.site <- apply(sp.site[,c(-1, -2)], 2, as.numeric)
+sp.site <- apply(sp.site[, c(-1, -2)], 2, as.numeric)
 
 dim(sp.site)
 
@@ -51,21 +51,19 @@ length(ab.meta)
 ab.meta
 
 #### separating 40 most abundant species in the metacommunity
-indice.sp <- order(ab.meta, decreasing=TRUE)[1:40]
+indice.sp <- order(ab.meta, decreasing = TRUE)[1:40]
 
-freq <- rowSums(sp.site>0)
+freq <- rowSums(sp.site > 0)
 
 ab.mean <- apply(sp.site, 1, mean)
 ab.mean
 
-plot(freq ~ ab.mean)
-
 ## Heat map of the species x sites matrix
-image(x=1:nrow(sp.site), y=1:ncol(sp.site), log(sp.site[,order(-ab.meta)]))
-    
+image(x = 1:nrow(sp.site), y = 1:ncol(sp.site), log(sp.site[, order(-ab.meta)]))
+
 #### Will indentify species as abundant (first 40 in rank) and rare (other)
-ab.rare <- data.frame(spp=unique(fern.data$spp),
-                      ab.rare=ifelse(sp%in%sp[indice.sp], "abundant", "rare"))
+ab.rare <- data.frame(spp = unique(fern.data$spp),
+                      ab.rare = ifelse(sp %in% sp[indice.sp], "abundant", "rare"))
 
 ab.rare
 
@@ -75,15 +73,15 @@ dim(fern.data.new)
 
 head(fern.data.new)
 
-fern.data.ab <- fern.data.new[fern.data.new$ab.rare=="abundant",]
-fern.data.rare <- fern.data.new[fern.data.new$ab.rare=="rare",]
+fern.data.ab <- fern.data.new[fern.data.new$ab.rare == "abundant", ]
+fern.data.rare <- fern.data.new[fern.data.new$ab.rare == "rare", ]
 
 write.table(fern.data.new,
-            "../data/data_for_modeling.csv",
+            "data/data_for_modeling.csv",
             col.names = TRUE, row.names = FALSE, sep = ",")
 
 write.table(fern.data.ab,
-            "../data/data_ab_for_modeling.csv",
+            "data/data_ab_for_modeling.csv",
             col.names = TRUE, row.names = FALSE, sep = ",")
 
 write.table(fern.data.rare,
