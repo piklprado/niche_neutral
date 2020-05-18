@@ -1,0 +1,13 @@
+Community,Effect,Process,Value
+right traits,(1|spp:region),neutral,0.0000000
+right traits,(1|spp:site),neutral,0.0007255
+right traits,(1+grad|site),niche,0.0000000
+right traits,(1|spp),niche,0.1011189
+right traits,fixed,niche,0.8858939
+right traits,(1+grad|spp),niche,NA
+wrong traits,(1|spp:region),neutral,NA
+wrong traits,(1|spp:site),neutral,NA
+wrong traits,(1+grad|site),niche,0.0000024
+wrong traits,(1|spp),niche,NA
+wrong traits,fixed,niche,0.1714462
+wrong traits,(1+grad|spp),niche,0.8199568
