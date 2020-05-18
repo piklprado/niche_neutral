@@ -1,6 +1,6 @@
-# Tailoring species abundance distributions to untie niche and neutral processes
+# Tailoring species abundance distributions to untie selection and drift processes
 
-Code for Mortara et al niche and neutral dynamics
+Code for Mortara et al 
 
     .
     ├── code                      # R Scripts, numbered
@@ -15,4 +15,3 @@ Code for Mortara et al niche and neutral dynamics
 
 
 Manuscript at [overleaf](https://www.overleaf.com/project/5d1d047e8ca02e5f56d3d212) or [saramortara/manuscript_niche_neutral](https://github.com/saramortara/manuscript/niche_neutral).
-
