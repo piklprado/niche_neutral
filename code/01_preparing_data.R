@@ -17,7 +17,7 @@ library(reshape)
 ############################
 
 # reading data
-fern.data <- read.csv("../data/data_original.csv", as.is = TRUE)
+fern.data <- read.csv("data/data_original.csv", as.is = TRUE)
 head(fern.data)
 # changing column names
 names(fern.data)[c(2, 4, 9)] <- c("spp", "region", "grad")

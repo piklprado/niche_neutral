@@ -19,20 +19,20 @@ library(dplyr)
 library(ggplot2)
 library(sads)
 # functions to calculate R2
-source("functions.R")
+source("code/functions.R")
 
 ############################
 # PART 2: loading data #####
 ############################
 
 ## abundant
-fern.data.ab <- read.csv("../data/data_ab_for_modeling.csv", as.is = TRUE)
+fern.data.ab <- read.csv("data/data_ab_for_modeling.csv", as.is = TRUE)
 
 ## rare
-fern.data.rare <- read.csv("../data/data_rare_for_modeling.csv", as.is = TRUE)
+fern.data.rare <- read.csv("data/data_rare_for_modeling.csv", as.is = TRUE)
 
 ## all
-fern.data <- read.csv("../data/data_for_modeling.csv", as.is = TRUE)
+fern.data <- read.csv("data/data_for_modeling.csv", as.is = TRUE)
 
 #######################
 # PART 3: modeling ####
@@ -221,9 +221,9 @@ sads.meta <- all.preds %>%
 
 
 ## writing predicted values
-write.table(all.preds, '../results/predicted.csv',
+write.table(all.preds, 'results/predicted.csv',
             col.names = TRUE, row.names = FALSE, sep = ",")
 
 
-write.table(sads.meta, '../results/sads_metacommunity.csv',
+write.table(sads.meta, 'results/sads_metacommunity.csv',
             col.names = TRUE, row.names = FALSE, sep = ",")
