@@ -1,12 +1,15 @@
 library(ggplot2)
 library(dplyr)
+#library(colortools)
 
+# First set of plots: one round of simulations #################################
 t1 <- read.csv("results/test1_tutorial.csv")
 t2 <- read.csv("results/test2_tutorial.csv")
 
 all.t1 <- tapply(t1$Value,
                  list(t1$Community),
                  sum, na.rm = TRUE)
+
 all.t2 <- tapply(t2$Value,
                  list(t2$Community),
                  sum, na.rm = TRUE)
@@ -20,14 +23,20 @@ t2$Total <- rep(all.t2, each = 6)
 t1$Proportion <- t1$Value/t1$Total
 t2$Proportion <- t2$Value/t2$Total
 
-cores <- c(ni = rgb(202, 0, 32, maxColorValue = 255),
-           neu = rgb(4, 4, 160, maxColorValue = 255),
-           id = rgb(180, 177, 172,  maxColorValue = 255),
-           nineu = rgb(245, 219 ,58, maxColorValue = 255))
+neutral <- "#091346"
+niche <- "#801411"
+nineu <- "#D6A838" #"#e1b727"
+idiosyncratic <- "#B4B1AC"
 
-cores
+paleta <- c(niche, neutral, nineu, grey)
 
-
+# other stuff w/ colors
+# library(colortools)
+# niche.cols <- analogous(niche)
+# neutral.cols <- analogous(neutral)
+# wheel(niche, num = 10)
+# wheel(neutral, num = 10)
+# wheel(nineu, num = 10)
 
 p1 <- ggplot(t1, aes(x = Community,
                      y = Proportion,
@@ -43,6 +52,10 @@ p2 <- ggplot(t2, aes(x = Community,
   geom_bar(stat = "identity", color = "black") +
   theme_classic()
 
+p2
+
+grid.arrange(p1, p2, nrow = 1)
+
 png("figures/test1.png")
 p1
 dev.off()
@@ -53,4 +66,3 @@ dev.off()
 
 p1
 p2
-cores
