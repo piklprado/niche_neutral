@@ -15,16 +15,16 @@ library(optimx)
 ################################################################################
 ## 1. Hypothesis of niche and neutral dynamics
 m.full <- function(ab, trait, grad, site, region, spp, ...){
-    niche.neutral <- glmer(ab ~ trait + grad + I(grad^2) + 
-                               trait:grad + trait:I(grad^2) + 
+    niche.neutral <- glmer(ab ~ trait + grad + I(grad^2) +
+                               trait:grad + trait:I(grad^2) +
                                (1|spp) +
                                (1|spp:region) + (1|spp:site) + (1+grad|site), ...)
-    return(niche.neutral)#, 
+    return(niche.neutral)#,
 }
 
 ## 2. Hypothesis of niche and neutral dynamics without species traits
 m.full2 <- function(ab, grad, site, region, spp, ...){
-    env.neutral <- glmer(ab ~ grad + I(grad^2) + 
+    env.neutral <- glmer(ab ~ grad + I(grad^2) +
                              (1|spp:region) + (1|spp:site) +
                              (1+grad|spp) + (1+grad|site), ...)
     return(env.neutral)
@@ -32,10 +32,10 @@ m.full2 <- function(ab, grad, site, region, spp, ...){
 
 ## 3. Solely niche dynamics
 m.niche <- function(ab, trait, grad, site, spp, ...){
-    niche <- glmer(ab ~ trait + grad + I(grad^2) + 
-                       trait:grad + trait:I(grad^2) + 
+    niche <- glmer(ab ~ trait + grad + I(grad^2) +
+                       trait:grad + trait:I(grad^2) +
                        (1|spp) + (1+grad|site), ...)
-    return(niche)#, 
+    return(niche)#,
 }
 
 
@@ -43,16 +43,16 @@ m.niche <- function(ab, trait, grad, site, spp, ...){
 m.env <- function(ab, grad, site, spp, ...){
     env <- glmer(ab ~ grad + I(grad^2) +
                      (1+grad|spp) + (1+grad|site), ...)
-    return(env) 
+    return(env)
 }
 
 ## 5. Solely neutral dynamics
 m.neutral <- function(ab, site, region, spp, ...){
     neutral <- glmer(ab ~ 1 +
-                        # (1|spp) 
+                        # (1|spp)
                      + (1|site) +
                     (1|spp:region) + (1|spp:site), ...)
-    return(neutral)#, 
+    return(neutral)#,
 }
 
 
@@ -89,7 +89,7 @@ generate.data <- function(Nsites=30, Nregions=3, Nspp=153, JM=1e6, m=0.5, Nrep=1
     sp.opt <- runif(Nspp, min = 1, max = 5)
     ## Initial condition ##
     ## Initial condition: matrix of sites x spp
-    ## Random values of species abundances 
+    ## Random values of species abundances
     m0b <- matrix(rlnorm(Nspp*Nsites), Nsites, Nspp)
     ## Round values of species abundance to represent discrete values of number of individuals
     m0b <- round(m0b)
@@ -104,7 +104,7 @@ generate.data <- function(Nsites=30, Nregions=3, Nspp=153, JM=1e6, m=0.5, Nrep=1
     simulation_landscape_det <- MCSim::fn.make.landscape(
                                            site.coords = sites[,1:2],
                                            Ef = sites$env,
-                                           m = m, 
+                                           m = m,
                                            JM = JM)
     ## Deteministic community ##
     ## Data frames to store simulations
@@ -114,7 +114,7 @@ generate.data <- function(Nsites=30, Nregions=3, Nspp=153, JM=1e6, m=0.5, Nrep=1
     ## To store simulation results
     Nrep <- 10
     det.resu <- matrix(NA, nrow=nrow(id), ncol=Nrep)
-    
+
     for(i in 1:Nrep){
         simu.det <- MCSim::fn.metaSIM( # simulation of deterministic community w correctly observed traits
                                landscape = simulation_landscape_det,
@@ -128,7 +128,7 @@ generate.data <- function(Nsites=30, Nregions=3, Nspp=153, JM=1e6, m=0.5, Nrep=1
                                save.sim = FALSE
                            )
         det <- subset(simu.det$J.long, timestep=="100")[,4]
-        det.resu[,i] <- det 
+        det.resu[,i] <- det
     }
     ## Abundances of each species as the mean of the 10 runs
     det <- data.frame(id, count=rowMeans(det.resu))
@@ -136,23 +136,23 @@ generate.data <- function(Nsites=30, Nregions=3, Nspp=153, JM=1e6, m=0.5, Nrep=1
     simulation_landscape_sto <- MCSim::fn.make.landscape(
                                            site.coords = sites[,1:2],
                                            Ef = sites$env,
-                                           m = 0.5, 
+                                           m = 0.5,
                                            JM = JM)
-    sto.resu <- matrix(NA, nrow=nrow(id), ncol=Nrep)    
+    sto.resu <- matrix(NA, nrow=nrow(id), ncol=Nrep)
     for(i in 1:Nrep){
         simu.sto <- MCSim::fn.metaSIM(
                                landscape = simulation_landscape_sto,
                                trait.Ef = sp.opt,
                                trait.Ef.sd = 1000, # niche deviation changed for neutral dynamics
                                J.t0 = m0b,
-                               n.timestep = 100, 
+                               n.timestep = 100,
                                W.r = 200, # Dispersal Kernel no longer flat
                                nu = 0,
                                speciation.limit = 0,
                                save.sim = FALSE
                            )
         sto <- subset(simu.sto$J.long, timestep=="100")[,4]
-        sto.resu[,i] <- sto 
+        sto.resu[,i] <- sto
     }
     sto <- data.frame(id, count=rowMeans(sto.resu))
     ## Poisson samples of a fraction S.eff of the total number of individuals##
@@ -162,9 +162,9 @@ generate.data <- function(Nsites=30, Nregions=3, Nspp=153, JM=1e6, m=0.5, Nrep=1
     sto.pois <- rpois(length(sto$count), sto$count*S.eff)
     ## Binding all data togheter ##
     data <- data.frame(site=id[,"site"], spp=id[,"spp"],
-                       det=det.pois, sto=sto.pois)                   
+                       det=det.pois, sto=sto.pois)
     ## Adding species traits, gradient and spacial info
-    ## Traits 
+    ## Traits
     ## A vector with wrong traits with correlation of less than 0.01 with the true traits
     cor.t <- 1
     while(cor.t>0.01){
@@ -177,7 +177,7 @@ generate.data <- function(Nsites=30, Nregions=3, Nspp=153, JM=1e6, m=0.5, Nrep=1
     ## Gradient
     env.data <- data.frame(site=unique(id$site), grad=scale(sites$env),
                            region=sites$region)
-    
+
     ## Preparing data table for model selection
     all.data <- merge(data, env.data, by=c("site"))
     all.data <- merge(all.data, trait.data, by=c("spp"))
@@ -192,64 +192,70 @@ generate.data <- function(Nsites=30, Nregions=3, Nspp=153, JM=1e6, m=0.5, Nrep=1
 #' @param trait character, name of the variable in data that has the species traits ("trait" for traits correlated with the abundances of species and "trait.wr" for traits uncorrelated, that is uninformative traits).
 fit.them.all <- function(objeto, ab, trait){
     ## With traits
+    message("Running niche neutral model")
     nineu.t <- m.full(ab=objeto[,ab],
                            trait=objeto[,trait],
                            grad=objeto$grad,
                            site=objeto$site,
-                           region=objeto$region, 
+                           region=objeto$region,
                            spp=objeto$spp,
                            family="poisson",
-                           control=glmerControl(optimizer="bobyqa", 
+                           control=glmerControl(optimizer="bobyqa",
                                                 optCtrl=list(maxfun=5e7))
                            )
     ## Without traits
+    message("Running niche neutral model without traits")
     envneu <- m.full2(ab=objeto[,ab],
                           grad=objeto$grad,
                           site=objeto$site,
-                          region=objeto$region, 
+                          region=objeto$region,
                           spp=objeto$spp,
                           family="poisson",
-                          control=glmerControl(optimizer="bobyqa", 
+                          control=glmerControl(optimizer="bobyqa",
                                                optCtrl=list(maxfun=5e7))
                           )
     ## Niche dynamics
     ## With traits
+    message("Running niche model")
     niche.t <- m.niche(ab=objeto[,ab],
                             trait=objeto[,trait],
                             grad=objeto$grad,
-                            site=objeto$site, 
+                            site=objeto$site,
                             spp=objeto$spp,
                             family="poisson",
-                            control=glmerControl(optimizer="bobyqa", 
+                            control=glmerControl(optimizer="bobyqa",
                                                  optCtrl=list(maxfun=5e7))
                             )
     ## W/o traits
+    message("Running environmental model")
     env <- m.env(ab=objeto[,ab],
                      grad=objeto$grad,
                      site=objeto$site,
                      spp=objeto$spp,
                      family="poisson",
-                     control=glmerControl(optimizer="bobyqa", 
+                     control=glmerControl(optimizer="bobyqa",
                                           optCtrl=list(maxfun=5e7))
                      )
 
     ## Neutral dynamics
+    message("Running neutral model")
     neu <- m.neutral(ab=objeto[,ab],
                          site=objeto$site,
-                         region=objeto$region, 
+                         region=objeto$region,
                          spp=objeto$spp,
                          family="poisson",
-                         control=glmerControl(optimizer="bobyqa", 
+                         control=glmerControl(optimizer="bobyqa",
                                               optCtrl=list(maxfun=5e7))
                          )
 
     ## Null hypothesis
-    null <- m.null(ab=objeto[,ab], 
+    message("Running null model")
+    null <- m.null(ab=objeto[,ab],
                        site=objeto$site,
-                       region=objeto$region, 
+                       region=objeto$region,
                        spp=objeto$spp,
                        family="poisson",
-                       control=glmerControl(optimizer="bobyqa", 
+                       control=glmerControl(optimizer="bobyqa",
                                             optCtrl=list(maxfun=5e7))
                        )
     list(nineu.t=nineu.t, envneu=envneu, niche.t=niche.t, env=env, neu=neu, null=null)
@@ -261,7 +267,7 @@ fit.them.all <- function(objeto, ab, trait){
 RepParallel <- function(n, expr, simplify = "array",...) {
     answer <-
         mclapply(integer(n), eval.parent(substitute(function(...) expr)),...)
-    if (!identical(simplify, FALSE) && length(answer)) 
+    if (!identical(simplify, FALSE) && length(answer))
         return(simplify2array(answer, higher = (simplify == "array")))
     else return(answer)
 }
