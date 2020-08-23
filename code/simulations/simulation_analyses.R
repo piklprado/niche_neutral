@@ -1,9 +1,9 @@
-source("../functions.R")
+source("code/functions.R")
 library(MuMIn)
 
 ## Deterministic community, right traits ##
 ## Loads the model list
-load("det_rt.RData")
+load("results/RData/det_rt2.RData")
 ## Model selection
 ## Auxiliary function
 f1 <- function(x, n=6) {
@@ -16,7 +16,8 @@ f1 <- function(x, n=6) {
 ## Delta-AICc for each model in each simulated data set
 det.rt.aic <- sapply(det.rt, f1)
 ## Proportion of the simulations in which each model was among the selected models
-apply(det.rt.aic<2, 1, function(x) sum(x, na.rm=TRUE)/sum(!is.na(x)))
+df.dt.rt <- apply(det.rt.aic<2, 1, function(x) sum(x, na.rm=TRUE)/sum(!is.na(x)))
+
 
 ## Pseudo-R2
 ## Auxiliary function
@@ -32,22 +33,27 @@ det.rt.R2 <- sapply(det.rt, f2)
 ## ugly tweak to add names to the rows
 rownames(det.rt.R2) <- with(det.rt[[1]], as.character(r2.full(nineu.t, null.model=neu)$full.table[,1]))
 ## Mean R2 for each component
-apply(det.rt.R2, 1, mean)
-## Empirical 95% CI
-apply(det.rt.R2, 1, quantile, c(0.025, 0.975))
+df2.dt.rt <- rbind(
+    apply(det.rt.R2, 1, mean),
+    ## Empirical 95% CI
+    apply(det.rt.R2, 1, quantile, c(0.025, 0.975))
+)
+
+write.csv(df.dt.rt, "results/simulations/dt_rt_prop.csv")
+write.csv(df2.dt.rt, "results/simulations/dt_rt_effects.csv")
 ## To save RAM
 rm(det.rt)
-save.image()
+#save.image()
 
 
 ## Deterministic community, wrong traits ##
 ## Loads the model list
-load("det_wt2.RData")
+load("results/RData/det_wt2.RData")
 ## Model selection
 ## Delta-AICc for each model in each simulated data set
 det.wt2.aic <- sapply(det.wt2, f1)
 ## Proportion of the simulations in which each model was among the selected models
-apply(det.wt2.aic<2, 1, function(x) sum(x, na.rm=TRUE)/sum(!is.na(x)))
+df.dt.wt <- apply(det.wt2.aic<2, 1, function(x) sum(x, na.rm=TRUE)/sum(!is.na(x)))
 ## Pseudo-R2
 ## Auxiliary function
 f3 <- function(x) {
@@ -61,20 +67,25 @@ det.wt2.R2 <- sapply(det.wt2, f3)
 ## ugly tweak to add names to the rows
 rownames(det.wt2.R2) <- with(det.wt2[[1]], as.character(r2.full2(envneu, null.model=neu)$full.table[,1]))
 ## Mean R2 for each component
-apply(det.wt2.R2, 1, mean, na.rm=TRUE)
-apply(det.wt2.R2, 1, quantile, c(0.025, 0.975), na.rm=TRUE)
+df2.dt.wt <- rbind(
+    apply(det.wt2.R2, 1, mean, na.rm=TRUE),
+    apply(det.wt2.R2, 1, quantile, c(0.025, 0.975), na.rm=TRUE)
+)
 ## To save RAM
+write.csv(df.dt.wt, "results/simulations/dt_wt_prop.csv")
+write.csv(df2.dt.wt, "results/simulations/dt_wt_effects.csv")
+
 rm(det.wt2)
-save.image()
+#save.image()
 
 ## Stochastic community, right traits ##
 ## Loads the model list
-load("sto_rt.RData")
+load("results/RData/sto_rt.RData")
 ## Model selection
 ## Delta-AICc for each model in each simulated data set
 sto.rt.aic <- sapply(sto.rt, f1)
 ## Proportion of the simulations in which each model was among the selected models
-apply(sto.rt.aic<2, 1, function(x) sum(x, na.rm=TRUE)/sum(!is.na(x)))
+df.sto.rt <- apply(sto.rt.aic<2, 1, function(x) sum(x, na.rm=TRUE)/sum(!is.na(x)))
 ## Pseudo-R2
 ## Auxiliary function
 f4 <- function(x) {
@@ -88,8 +99,13 @@ sto.rt.R2 <- sapply(sto.rt, f4)
 ## ugly tweak to add names to the rows
 rownames(sto.rt.R2) <- with(sto.rt[[1]], as.character(r2.neutral(neu, null.model=neu)$full.table[,1]))
 ## Mean R2 for each component
-apply(sto.rt.R2, 1, mean, na.rm=TRUE)
-apply(sto.rt.R2, 1, quantile, c(0.025, 0.975), na.rm=TRUE)
+df2.sto.rt <- rbind(
+    apply(sto.rt.R2, 1, mean, na.rm=TRUE),
+    apply(sto.rt.R2, 1, quantile, c(0.025, 0.975), na.rm=TRUE)
+)
 ## To save RAM
+write.csv(df.sto.rt, "results/simulations/sto_rt_prop.csv")
+write.csv(df2.sto.rt, "results/simulations/sto_rt_effects.csv")
+
 rm(sto.rt)
-save.image()
+#save.image()
