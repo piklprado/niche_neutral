@@ -57,7 +57,7 @@ df.dt.wt <- apply(det.wt2.aic < 2, 1, function(x) sum(x, na.rm = TRUE)/sum(!is.n
 ## Auxiliary function
 f3 <- function(x) {
     if (is.null(x))
-        y <- rep(NA,7)
+        y <- rep(NA, 7)
     else
         y <- with(x, r2.full2(envneu, null.model = neu)$full.table[,2])
     return(y)
@@ -89,7 +89,7 @@ df.sto.rt <- apply(sto.rt.aic < 2, 1, function(x) sum(x, na.rm = TRUE)/sum(!is.n
 ## Auxiliary function
 f4 <- function(x) {
     if (is.null(x))
-        y <- rep(NA,6)
+        y <- rep(NA, 6)
     else
         y <- with(x, r2.neutral(neu, null.model = neu)$full.table[, 2])
     return(y)
