@@ -13,25 +13,12 @@ output:
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 # Libraries
-library(dplyr)
-library(ggplot2)
-library(reshape2)
 library(kableExtra)
 
 # Reading output from simulations
 ## Listing files
-prop_files <- list.files("results/simulations", pattern = ".*_prop.csv$", full.names = TRUE)
-effects_files <-  list.files("results/simulations", pattern = ".*_effects.csv$", full.names = TRUE)
-
-## Setting names
-comm <- c("Deterministic with right traits", "Deterministic with wrong traits", "Stochastic with right traits")
-models <- c("Niche-neutral", "Niche-neutral (no traits)", "Niche", "Niche (no traits)", "Neutral", "Idyosyncratic")
-
-# Proportions of the best fitted models
-prop_list <- lapply(prop_files, read.csv)
-prop_df <- t(bind_cols(lapply(prop_list, function(x) x[, 2])))
-colnames(prop_df) <- models
-rownames(prop_df) <- comm
+prop_df <- read.csv("results/supplementary_01.csv")
+colnames(prop_df)
 ```
 
 In order to show how we implemented our framework and how model
@@ -88,7 +75,7 @@ available in the script 'functions.R' but applies only to models within our fram
 
 ```{r table-prop}
 tab1 <- "Proportion of models with Delta AIC <  2 at each scenario."
-kable(prop_df, digits = rep(2, ncol(prop_df)), 
+kable(prop_df, digits = rep(2, ncol(prop_df), colnames = names(prop_df)), 
       caption = tab1) %>% kable_styling()
 ```
 

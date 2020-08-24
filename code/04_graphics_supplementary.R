@@ -1,6 +1,7 @@
 # Libraries
 library(ggplot2)
 library(dplyr)
+library(reshape2)
 
 #library(colortools)
 # Setting color palette
@@ -19,7 +20,7 @@ effects_files <-  list.files("results/simulations", pattern = ".*_effects.csv$",
 # Proportion table --------------------------------------------------------
 ## Setting names
 comm <- c("Deterministic with right traits", "Deterministic with wrong traits", "Stochastic with right traits")
-models <- c("Niche-neutral", "Niche-neutral (no traits)", "Niche", "Niche (no traits)", "Neutral", "Idyosyncratic")
+models <- c("Drift-Selection", "Drift-Selection (no traits)", "Selection", "Selection (no traits)", "Drift", "Idyosyncratic")
 
 # Proportions of the best fitted models
 prop_list <- lapply(prop_files, read.csv)
@@ -27,34 +28,38 @@ prop_df <- t(bind_cols(lapply(prop_list, function(x) x[, 2])))
 colnames(prop_df) <- models
 rownames(prop_df) <- comm
 
+write.table(prop_df, "results/supplementary_01.csv")
 
 # Effects -----------------------------------------------------------------
-
 effects_list <- lapply(effects_files, read.csv)
 names(effects_list) <- comm
-effects_df <- bind_rows(effects_list, .id = "scenario") %>%
+effects_all <- bind_rows(effects_list, .id = "scenario") %>%
   rename(stat = X)
-effects_df$stat[effects_df$stat == ""] <- "mean"
+effects_all$stat[effects_all$stat == ""] <- "mean"
 
-effect_mean <- melt(effects_df) %>%  filter(stat == "mean")
-effect_mean$lwr <- melt(effects_df) %>%  filter(stat == "2.5%") %>% select(value) %>%
-  rename(lwr = value)
-effect_mean$upr <- melt(effects_df) %>%  filter(stat == "97.5%") %>% select(value) %>%
+effects_mean <- melt(effects_all) %>%  filter(stat == "mean")
+lwr <- melt(effects_all) %>%  filter(stat == "2.5%") %>% select(value) %>% rename(lwr = value)
+upr <- melt(effects_all) %>%  filter(stat == "97.5%") %>% select(value) %>%
   rename(upr = value)
-effect_mean$variable <- gsub("X.1.", "", effect_mean$variable, fixed = TRUE)
-effect_mean$scenario <- factor(effect_mean$scenario,
+effects_df <- cbind(effects_mean, lwr, upr)
+effects_df$variable <- gsub("X.1.", "", effects_df$variable, fixed = TRUE)
+effects_df$scenario <- factor(effects_df$scenario,
                                levels = c("Stochastic with right traits",
                                           "Deterministic with right traits",
                                           "Deterministic with wrong traits"))
 
-png("figures/S1.png", res = 300, width = 1800, height = 1200)
-ggplot(data = effect_mean, aes(y = variable, x = value, group = scenario)) +
+p <- ggplot(data = effects_df, aes(y = variable, x = value, group = scenario)) +
   geom_point(aes(color = scenario)) +
-  # geom_segment(aes(y = as.numeric(variable), yend = as.numeric(variable),
-  #                  x = lwr, xend = upr)) +
+  geom_segment(aes(y = variable, yend = variable,
+                   x = lwr, xend = upr, color = scenario)) +
   # #facet_wrap(~ scenario, ncol = 1) +
   labs(x = "Partitioned R-squared value", y = "Model term") +
   theme_classic()
+
+p
+
+png("figures/S1.png", res = 300, width = 1800, height = 1200)
+p
 dev.off()
 
 # other stuff w/ colors
