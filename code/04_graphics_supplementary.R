@@ -47,12 +47,16 @@ effect_mean$scenario <- factor(effect_mean$scenario,
                                           "Deterministic with right traits",
                                           "Deterministic with wrong traits"))
 
+png("figures/S1.png", res = 300, width = 1800, height = 1200)
 ggplot(data = effect_mean, aes(y = variable, x = value, group = scenario)) +
   geom_point(aes(color = scenario)) +
-  geom_segment(aes(y = as.numeric(variable), yend = as.numeric(variable),
-                   x = lwr, xend = upr)) +
-  #facet_wrap(~ scenario, ncol = 1) +
+  # geom_segment(aes(y = as.numeric(variable), yend = as.numeric(variable),
+  #                  x = lwr, xend = upr)) +
+  # #facet_wrap(~ scenario, ncol = 1) +
+  labs(x = "Partitioned R-squared value", y = "Model term") +
   theme_classic()
+dev.off()
+
 # other stuff w/ colors
 # library(colortools)
 # niche.cols <- analogous(niche)

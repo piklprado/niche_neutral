@@ -10,10 +10,12 @@ output:
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 # Libraries
 library(dplyr)
+library(ggplot2)
+library(reshape2)
 library(kableExtra)
 
 # Reading output from simulations
@@ -30,7 +32,6 @@ prop_list <- lapply(prop_files, read.csv)
 prop_df <- t(bind_cols(lapply(prop_list, function(x) x[, 2])))
 colnames(prop_df) <- models
 rownames(prop_df) <- comm
-
 ```
 
 In order to show how we implemented our framework and how model
@@ -90,5 +91,7 @@ tab1 <- "Proportion of models with Delta AIC <  2 at each scenario."
 kable(prop_df, digits = rep(2, ncol(prop_df)), 
       caption = tab1) %>% kable_styling()
 ```
+
+![Figure S1. ](../figures/S1.png)
 
 
