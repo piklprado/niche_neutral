@@ -36,12 +36,23 @@ effects_df <- bind_rows(effects_list, .id = "scenario") %>%
   rename(stat = X)
 effects_df$stat[effects_df$stat == ""] <- "mean"
 
-effect_mean <- filter(effects_df, stat == "mean")
-effect_lwr <- filter(effects_df, stat == "2.5%")
-effect_lwr <- filter(effects_df, stat == "97.5%")
+effect_mean <- melt(effects_df) %>%  filter(stat == "mean")
+effect_mean$lwr <- melt(effects_df) %>%  filter(stat == "2.5%") %>% select(value) %>%
+  rename(lwr = value)
+effect_mean$upr <- melt(effects_df) %>%  filter(stat == "97.5%") %>% select(value) %>%
+  rename(upr = value)
+effect_mean$variable <- gsub("X.1.", "", effect_mean$variable, fixed = TRUE)
+effect_mean$scenario <- factor(effect_mean$scenario,
+                               levels = c("Stochastic with right traits",
+                                          "Deterministic with right traits",
+                                          "Deterministic with wrong traits"))
 
-
-
+ggplot(data = effect_mean, aes(y = variable, x = value, group = scenario)) +
+  geom_point(aes(color = scenario)) +
+  geom_segment(aes(y = as.numeric(variable), yend = as.numeric(variable),
+                   x = lwr, xend = upr)) +
+  #facet_wrap(~ scenario, ncol = 1) +
+  theme_classic()
 # other stuff w/ colors
 # library(colortools)
 # niche.cols <- analogous(niche)
