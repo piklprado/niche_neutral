@@ -33,9 +33,9 @@ det.rt.R2 <- sapply(det.rt, f2)
 rownames(det.rt.R2) <- with(det.rt[[1]], as.character(r2.full(nineu.t, null.model = neu)$full.table[,1]))
 ## Mean R2 for each component
 df2.dt.rt <- rbind(
-    apply(det.rt.R2, 1, mean),
+    apply(det.rt.R2, 1, mean, na.rm = TRUE),
     ## Empirical 95% CI
-    apply(det.rt.R2, 1, quantile, c(0.025, 0.975))
+    apply(det.rt.R2, 1, quantile, c(0.025, 0.975), na.rm = TRUE)
 )
 
 write.csv(df.dt.rt, "results/simulations/dt_rt_prop.csv")
@@ -43,7 +43,6 @@ write.csv(df2.dt.rt, "results/simulations/dt_rt_effects.csv")
 ## To save RAM
 rm(det.rt)
 #save.image()
-
 
 ## Deterministic community, wrong traits ##
 ## Loads the model list
@@ -68,7 +67,7 @@ rownames(det.wt2.R2) <- with(det.wt2[[1]], as.character(r2.full2(envneu, null.mo
 ## Mean R2 for each component
 df2.dt.wt <- rbind(
     apply(det.wt2.R2, 1, mean, na.rm = TRUE),
-    apply(det.wt2.R2, 1, quantile, c(0.025, 0.975), na.rm=TRUE)
+    apply(det.wt2.R2, 1, quantile, c(0.025, 0.975), na.rm = TRUE)
 )
 ## To save RAM
 write.csv(df.dt.wt, "results/simulations/dt_wt_prop.csv")

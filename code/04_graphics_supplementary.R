@@ -2,6 +2,7 @@
 library(ggplot2)
 library(dplyr)
 library(reshape2)
+library(stringr)
 
 #library(colortools)
 # Setting color palette
@@ -28,7 +29,7 @@ prop_df <- t(bind_cols(lapply(prop_list, function(x) x[, 2])))
 colnames(prop_df) <- models
 rownames(prop_df) <- comm
 
-write.table(prop_df, "results/supplementary_01.csv")
+write.csv(prop_df, "results/supplementary_01.csv")
 
 # Effects -----------------------------------------------------------------
 effects_list <- lapply(effects_files, read.csv)
@@ -42,11 +43,30 @@ lwr <- melt(effects_all) %>%  filter(stat == "2.5%") %>% select(value) %>% renam
 upr <- melt(effects_all) %>%  filter(stat == "97.5%") %>% select(value) %>%
   rename(upr = value)
 effects_df <- cbind(effects_mean, lwr, upr)
-effects_df$variable <- gsub("X.1.", "", effects_df$variable, fixed = TRUE)
+
+variable_new <- c("Conditional", "Fixed", "Random", "(1+(G|L))", "(1|SP:L)", "(1|SP:R)",
+                  "(1|SP)", "(1+(G|SP))", "(1|L)")
+names(variable_new) <- unique(effects_df$variable)
+effects_df$variable_name <- str_replace_all(effects_df$variable, variable_new) %>%
+  factor(.,
+         levels = c("Conditional", "Random",
+                    "Fixed", "(1+(G|L))", "(1+(G|SP))", "(1|SP)",
+                    "(1|SP:R)", "(1|SP:L)", "(1|L)"))
+
 effects_df$scenario <- factor(effects_df$scenario,
                                levels = c("Stochastic with right traits",
                                           "Deterministic with right traits",
                                           "Deterministic with wrong traits"))
+
+
+
+# type of effect
+type <- data.frame(variable = unique(effects_df$variable),
+                   type = c("Total", "Selection", "Random", "Selection", "Drift", "Drift",
+                            "Selection", "Selection", "Drift"))
+
+df <- left_join(effects_df, type, by = "variable") %>%
+  filter(!type %in% c("Random", "Total"))
 
 p <- ggplot(data = effects_df, aes(y = variable, x = value, group = scenario)) +
   geom_point(aes(color = scenario)) +
@@ -56,45 +76,19 @@ p <- ggplot(data = effects_df, aes(y = variable, x = value, group = scenario)) +
   labs(x = "Partitioned R-squared value", y = "Model term") +
   theme_classic()
 
+p <- ggplot(data = df, aes(y = variable_name, x = value, shape = scenario)) +
+  #geom_jitter(aes(color = type)) +
+  geom_point(aes(color = type)) +
+  scale_shape_manual(values = c(19, 17, 2)) +
+  geom_segment(aes(y = variable_name, yend = variable_name,
+                   x = lwr, xend = upr, color = type)) +
+  scale_color_manual(values = c(neutral, niche)) +
+  labs(x = "Partitioned R-squared value", y = "Model term") +
+  theme_classic()
+
+
 p
 
 png("figures/S1.png", res = 300, width = 1800, height = 1200)
 p
 dev.off()
-
-# other stuff w/ colors
-# library(colortools)
-# niche.cols <- analogous(niche)
-# neutral.cols <- analogous(neutral)
-# wheel(niche, num = 10)
-# wheel(neutral, num = 10)
-# wheel(nineu, num = 10)
-
-# p1 <- ggplot(t1, aes(x = Community,
-#                      y = Proportion,
-#                      fill = Effect)) +
-#   geom_bar(stat = "identity", color = "black") +
-#   theme_classic()
-#
-#
-# p1
-# p2 <- ggplot(t2, aes(x = Community,
-#                      y = Proportion,
-#                      fill = Effect)) +
-#   geom_bar(stat = "identity", color = "black") +
-#   theme_classic()
-#
-# p2
-#
-# grid.arrange(p1, p2, nrow = 1)
-#
-# png("figures/test1.png")
-# p1
-# dev.off()
-#
-# png("figures/test2.png")
-# p2
-# dev.off()
-#
-# p1
-# p2
