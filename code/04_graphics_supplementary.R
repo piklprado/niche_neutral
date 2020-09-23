@@ -70,16 +70,21 @@ df <- left_join(effects_df, type, by = "variable") %>%
 
 p <- ggplot(data = df, aes(y = variable_name, x = value, shape = scenario)) +
   #geom_jitter(aes(color = type)) +
-  geom_point(aes(color = type)) +
-  scale_shape_manual(values = c(19, 17, 2)) +
+  geom_point(aes(color = type), alpha = 0.7) +
+  scale_shape_manual(values = c(19, 17, 2), name = "Scenario") +
   geom_segment(aes(y = variable_name, yend = variable_name,
                    x = lwr, xend = upr, color = type)) +
+  geom_hline(yintercept = 4.5, linetype = "dashed", color = idiosyncratic) +
   scale_color_manual(values = c(neutral, niche)) +
+  annotate("text", x = 0.5, y = 7.2, label = "Drift", colour = neutral) +
+  annotate("text", x = 0.5, y = 4.2, label = "Selection", colour = niche) +
   labs(x = "Partitioned R-squared value", y = "Model term") +
-  theme_classic()
+  guides(color = FALSE) +
+  theme_classic() +
+  theme(legend.position = "bottom")
 
 p
 
-png("figures/S1.png", res = 300, width = 1800, height = 1200)
+png("figures/S1.png", res = 300, width = 1800, height = 1600)
 p
 dev.off()
