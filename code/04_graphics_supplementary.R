@@ -68,14 +68,6 @@ type <- data.frame(variable = unique(effects_df$variable),
 df <- left_join(effects_df, type, by = "variable") %>%
   filter(!type %in% c("Random", "Total"))
 
-p <- ggplot(data = effects_df, aes(y = variable, x = value, group = scenario)) +
-  geom_point(aes(color = scenario)) +
-  geom_segment(aes(y = variable, yend = variable,
-                   x = lwr, xend = upr, color = scenario)) +
-  # #facet_wrap(~ scenario, ncol = 1) +
-  labs(x = "Partitioned R-squared value", y = "Model term") +
-  theme_classic()
-
 p <- ggplot(data = df, aes(y = variable_name, x = value, shape = scenario)) +
   #geom_jitter(aes(color = type)) +
   geom_point(aes(color = type)) +
@@ -85,7 +77,6 @@ p <- ggplot(data = df, aes(y = variable_name, x = value, shape = scenario)) +
   scale_color_manual(values = c(neutral, niche)) +
   labs(x = "Partitioned R-squared value", y = "Model term") +
   theme_classic()
-
 
 p
 
