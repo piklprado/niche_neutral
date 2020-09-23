@@ -1,4 +1,4 @@
-,,niche,niche,niche,niche,niche,neutral,neutral,null,null,null
+,,selection,selection,selection,selection,selection,drift,drift,null,null,null
 ,model,trait,environment,1+grad|site,1+grad|spp,spp,spp:site,spp:region,region,site,spp
 1,m.full,■,■,■,,■,■,■,,,
 2,m.full2,,■,■,■,,■,■,,,
