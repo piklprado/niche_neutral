@@ -18,7 +18,7 @@ library(kableExtra)
 # Reading output from simulations
 ## Listing files
 prop_df <- read.csv("results/supplementary_01.csv")
-colnames(prop_df) <- c("Scenario", "Drift & Trait-mediated Selection", "Drift & Selection", "Trait-mediated Selection", "Selection", "Drift", "Idyosyncratic")
+colnames(prop_df) <- c("Scenario", "Trait-mediated Selection & Drift", "Selection & Drift", "Trait-mediated Selection", "Selection", "Drift", "Idyosyncratic")
 ```
 
 In order to show how we implemented our framework and how model
