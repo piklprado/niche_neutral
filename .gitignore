@@ -13,3 +13,7 @@ SIM_OUTPUT/
 ignore/
 manuscript/
 
+# files
+*.pdf
+*.tex
+
