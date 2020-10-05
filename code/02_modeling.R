@@ -100,7 +100,7 @@ mod.names <- c("niche & neutral", "neutral", "niche", "null", "env & neutral",
 aic.ab <- AICctab(m.list, mnames = mod.names, base = TRUE, weights = TRUE, logLik = TRUE)
 class(aic.ab) <- 'data.frame'
 
-write.table(aic.ab, "../results/aic_table_ab.csv",
+write.table(aic.ab, "results/aic_table_ab.csv",
             row.names = TRUE, col.names = TRUE, sep = ",")
 
 # 3.2 Rare species
@@ -156,7 +156,7 @@ aic.rar <- AICctab(m.list.rar, mnames = mod.names, base = TRUE, weights = TRUE,
                    logLik = TRUE)
 class(aic.rar) <- 'data.frame'
 
-write.table(aic.rar, "../results/aic_table_rar.csv",
+write.table(aic.rar, "results/aic_table_rar.csv",
             row.names = TRUE, col.names = TRUE, sep = ",")
 
 
@@ -194,7 +194,6 @@ pred.ab <- merTools::predictInterval(m.full.ab,  which = "all",
 ## Predicted for rare species
 pred.rare <- merTools::predictInterval(m.neutral.rar,  which = "all",
                                        type = "linear.prediction", level = 0.95)
-
 ## Mean expected abundances in function of altitude for all species by the combination of the best models
 all.preds <- rbind(cbind(fern.data.ab,combined = pred.ab[pred.ab$effect == "combined", "fit"],
                          fixed = pred.ab[pred.ab$effect == "fixed", "fit"]),

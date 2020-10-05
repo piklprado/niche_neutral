@@ -29,7 +29,7 @@ prop_df <- t(bind_cols(lapply(prop_list, function(x) x[, 2])))
 colnames(prop_df) <- models
 rownames(prop_df) <- comm
 
-write.csv(prop_df, "results/supplementary_01.csv")
+#write.csv(prop_df, "results/supplementary_01.csv")
 
 # Effects -----------------------------------------------------------------
 effects_list <- lapply(effects_files, read.csv)
@@ -61,30 +61,38 @@ effects_df$scenario <- factor(effects_df$scenario,
 
 
 # type of effect
-type <- data.frame(variable = unique(effects_df$variable),
+type <- data.frame(variable = unique(effects_df$variable_name),
                    type = c("Total", "Selection", "Random", "Selection", "Drift", "Drift",
                             "Selection", "Selection", "Drift"))
 
 df <- left_join(effects_df, type, by = "variable") %>%
   filter(!type %in% c("Random", "Total"))
 
-p <- ggplot(data = df, aes(y = variable_name, x = value, shape = scenario)) +
-  #geom_jitter(aes(color = type)) +
-  geom_point(aes(color = type), alpha = 0.7) +
+# Creating jitter position by hand
+df$variable_position <- jitter(as.numeric(df$variable_name))
+# Label for x axis
+x <- aggregate(variable_position ~ variable_name, data = df, FUN = mean)
+
+p <- ggplot(data = df, aes(y = variable_position, x = value, shape = scenario)) +
+  geom_point(aes(color = type), size = 2) +
+  scale_y_continuous(breaks = x$variable_position,
+                     labels = x$variable_name) +
   scale_shape_manual(values = c(19, 17, 2), name = "Scenario") +
-  geom_segment(aes(y = variable_name, yend = variable_name,
+  geom_segment(aes(y = variable_position, yend = variable_position,
                    x = lwr, xend = upr, color = type)) +
-  geom_hline(yintercept = 4.5, linetype = "dashed", color = idiosyncratic) +
+  geom_hline(yintercept = 6.5, linetype = "dashed", color = idiosyncratic) +
   scale_color_manual(values = c(neutral, niche)) +
-  annotate("text", x = 0.5, y = 7.2, label = "Drift", colour = neutral) +
-  annotate("text", x = 0.5, y = 4.2, label = "Selection", colour = niche) +
+  annotate("text", x = 0.5, y = 9.5, label = "Drift terms", colour = neutral, size = 4.5) +
+  annotate("text", x = 0.5, y = 6.2, label = "Selection terms", colour = niche, size = 4.5) +
   labs(x = "Partitioned R-squared value", y = "Model term") +
   guides(color = FALSE) +
   theme_classic() +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        axis.text = element_text(size = 11),
+        axis.title = element_text(size = 12))
 
 p
 
-png("figures/S1.png", res = 300, width = 1800, height = 1600)
+png("figures/S1.png", res = 300, width = 2200, height = 1600)
 p
 dev.off()
