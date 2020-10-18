@@ -18,7 +18,7 @@ source("code/functions.R")
 # niche <- rgb(202, 0, 32, maxColorValue = 255)
 # neutral <- rgb(4, 4, 160, maxColorValue = 255)
 # nineu <- rgb(245, 219, 50, maxColorValue = 255)
-# grey <- rgb(180, 177, 172, maxColorValue = 255)
+grey <- rgb(180, 177, 172, maxColorValue = 255)
 
 neutral <- "#091346"
 niche <- "#801411"
@@ -32,9 +32,8 @@ PR <- '#aaaaaa'
 paleta <- c(niche, neutral, nineu, grey)
 paleta2 <- c(GR, MR, PR)
 
-plot(1:4, col = paleta, pch = 19, cex = 5)
-plot(1:4, col = c(nineu, paleta2), pch = 19, cex = 5)
-
+# plot(1:4, col = paleta, pch = 19, cex = 5)
+# plot(1:4, col = c(nineu, paleta2), pch = 19, cex = 5)
 
 ## reading data
 all.preds <- read.csv("results/predicted.csv")
@@ -46,12 +45,12 @@ head(sads.meta)
 ### The figure ###
 ## 1st panel of the figure: RAD with total and random part of standard deviations
 fig.meta1 <- sads.meta %>%
-    ggplot(aes(sp.rank, mean.obs)) +
+    ggplot(aes(x = sp.rank, y = mean.obs)) +
     geom_ribbon(aes(ymin = lwr.obs, ymax = upr.obs), alpha = 0.3, fill = grey)  +
     geom_linerange(aes(x = sp.rank, ymin = lwr.random, ymax = upr.random, color = ab.class), size = 0.4) +
     geom_point(aes(color = ab.class)) +
     scale_color_manual(values = c(nineu, neutral)) +
-    labs(x = "Abundance rank", y = "Mean abundance", color = "") +
+    labs(x = "Abundance rank", y = "Mean abundance", color = "", tag = "A") +
     scale_y_log10() +
     theme_classic()
 
@@ -65,7 +64,7 @@ fig.meta2 <- fern.data[fern.data$spp == sads.meta$spp[sads.meta$sp.rank == 1], ]
     geom_jitter(aes(color = region), size = 2.5, alpha = 0.5) +
     scale_color_manual(values = paleta2) +
     labs(title = expression(bold("Core:") ~ italic("Polybotrya cylindrica")),
-                            x = "", y = "Abundance", color = "Region") +
+                            x = "", y = "Abundance", color = "Region", tag = "B") +
     theme_classic()
 
 fig.meta2
@@ -73,7 +72,7 @@ fig.meta2
 ## 3rd panel: Most abundant of occasional species
 fig.meta3 <- fig.meta2 %+% fern.data[fern.data$spp == sads.meta$spp[sads.meta$sp.rank == 41],] +
     labs(title = expression(bold("Occasional:") ~ italic("Trichomanes polypodioides")),
-                            x = "", y = "", color = "Region") +
+                            x = "", y = "", color = "Region", tag = "C") +
     theme_classic()
 
 fig.meta3
@@ -90,7 +89,7 @@ fig.meta.list <- list(
 )
 
 ## Arrange with grid.arrange
-cairo_pdf("figures/rad_mettacomunity.pdf", width = 9, height = 7.5)
+cairo_pdf("figures/rad_metacommunity.pdf", width = 9, height = 7.5)
 
 grid.arrange(
     grobs = fig.meta.list,

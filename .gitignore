@@ -14,6 +14,6 @@ ignore/
 manuscript/
 
 # files
-*.pdf
 *.tex
+supplementary/*pdf
 
