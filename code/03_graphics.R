@@ -51,7 +51,7 @@ fig.meta1 <- sads.meta %>%
     geom_linerange(aes(x = sp.rank, ymin = lwr.random, ymax = upr.random, color = ab.class), size = 0.4) +
     geom_point(aes(color = ab.class)) +
     scale_color_manual(values = c(nineu, neutral)) +
-    labs(x = "Abundance rank", y = "Mean abundance", color = "") +
+    labs(x = "Abundance rank", y = "Mean abundance", color = "", tag = "A") +
     scale_y_log10() +
     theme_classic()
 
@@ -65,7 +65,7 @@ fig.meta2 <- fern.data[fern.data$spp == sads.meta$spp[sads.meta$sp.rank == 1], ]
     geom_jitter(aes(color = region), size = 2.5, alpha = 0.5) +
     scale_color_manual(values = paleta2) +
     labs(title = expression(bold("Core:") ~ italic("Polybotrya cylindrica")),
-                            x = "", y = "Abundance", color = "Region") +
+                            x = "", y = "Abundance", color = "Region", tag = "B") +
     theme_classic()
 
 fig.meta2
@@ -73,7 +73,7 @@ fig.meta2
 ## 3rd panel: Most abundant of occasional species
 fig.meta3 <- fig.meta2 %+% fern.data[fern.data$spp == sads.meta$spp[sads.meta$sp.rank == 41],] +
     labs(title = expression(bold("Occasional:") ~ italic("Trichomanes polypodioides")),
-                            x = "", y = "", color = "Region") +
+                            x = "", y = "", color = "Region", tag = "C") +
     theme_classic()
 
 fig.meta3
@@ -90,7 +90,7 @@ fig.meta.list <- list(
 )
 
 ## Arrange with grid.arrange
-cairo_pdf("figures/rad_mettacomunity.pdf", width = 9, height = 7.5)
+cairo_pdf("figures/rad_metacommunity.pdf", width = 9, height = 7.5)
 
 grid.arrange(
     grobs = fig.meta.list,
