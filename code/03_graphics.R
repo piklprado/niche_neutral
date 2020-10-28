@@ -98,3 +98,21 @@ grid.arrange(
 )
 
 dev.off()
+
+# Figure R2
+
+r2 <- read.csv("results/r2_table.csv")
+
+r2$type[r2$type == "idiosyncratic"] <- "niche"
+
+r2.df <- r2 %>%
+    filter(!type %in% c("all", "all.random")) %>%
+    mutate(R2 = round(R2, 4)) %>%
+    group_by(group, type) %>%
+    summarise(R2 = sum(R2))
+
+#pdf("../figures/barplot.pdf")
+ggplot(r2.df, aes(fill = type, y = R2, x = group)) +
+    geom_bar(stat = "identity", position = "fill") +
+    theme_classic()
+#dev.off()
