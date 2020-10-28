@@ -171,18 +171,11 @@ r2.rar <- r2.neutral(m.neutral.rar)
 r2.ab
 r2.rar
 
-#### Grafico R2 ####
-## creating data frame for plot
+#### Exporting R2 table ####
 r2.df <- rbind(r2.ab$full.table, r2.rar$full.table)
 r2.df$group <- c(rep("abundant", 7), rep("rare", 6))
 
-r2.df <- r2.df[!r2.df$type %in% c("all", "all.random"),]
-
-#pdf("../figures/barplot.pdf")
-ggplot(r2.df, aes(fill = type, y = R2, x = group)) +
-    geom_bar(stat = "identity", position = "fill") +
-    theme_classic()
-#dev.off()
+write.csv("results/r2_table.csv", row.names = FALSE)
 
 ##############################################
 ## Part 5: exporting predicted data ##########
