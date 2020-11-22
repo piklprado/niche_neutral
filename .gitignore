@@ -8,6 +8,9 @@
 # emacs backup files
 *~
 
+# lock files
+*.~*
+
 # dirs
 SIM_OUTPUT/
 ignore/
