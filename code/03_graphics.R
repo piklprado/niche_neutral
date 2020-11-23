@@ -40,7 +40,12 @@ paleta <- c(niche, neutral, nineu, grey)
 paleta2 <- c(GR, MR, PR)
 
 # plot(1:4, col = paleta, pch = 19, cex = 5)
-plot(1:3, col = paleta2, pch = 19, cex = 5)
+#plot(1:3, col = paleta2, pch = 19, cex = 5)
+
+sp.sel <- c("sp158", "sp033", "sp028",
+            "sp084", "sp120", "sp030")
+
+sads.sel <- sads.meta %>% filter(spp %in% sp.sel)
 
 ### The figure ###
 ## 1st panel of the figure: RAD with total and random part of standard deviations
@@ -49,6 +54,13 @@ fig.meta1 <- sads.meta %>%
     geom_ribbon(aes(ymin = lwr.obs, ymax = upr.obs), alpha = 0.3, fill = grey)  +
     geom_linerange(aes(x = sp.rank, ymin = lwr.random, ymax = upr.random, color = ab.class), size = 0.4) +
     geom_point(aes(color = ab.class)) +
+     geom_text(data = sads.sel, aes(x = sp.rank, y = upr.obs + c(70, 50, 50, 50, 50, 50),
+                                    label = sp.rank), color = "grey20", size = 3.5) +
+    geom_segment(data = sads.sel, aes(x = sp.rank, xend = sp.rank,
+                                      y = upr.obs + c(60, 40, 40, 40, 40, 40),
+                                      yend = upr.random),
+                                      color = "grey20",
+                 linetype = 2) +
     scale_color_manual(values = c(nineu, neutral)) +
     labs(x = "Abundance rank", y = "Mean abundance", color = "", tag = "A") +
     scale_y_log10() +
@@ -95,9 +107,12 @@ names.sp <- spp %>%
 
 fig.sp <- list()
 
+df.rank <- sads.sel %>% select(spp, sp.rank)
+
 data.sel <- fern.data %>%
     filter(spp %in% sp.sel) %>%
     left_join(names.sp, by = "spp") %>%
+    left_join(df.rank, by = "spp") %>%
     mutate(spp = factor(.$spp,
                         levels = c("sp084", "sp120", "sp030",
                                    "sp158", "sp033", "sp028"))) %>%
@@ -120,18 +135,21 @@ data.sel <- fern.data %>%
 
 fig.sp <- list()
 
+
+
 for (i in 1:length(sp.sel)) {
+    sp.text <- paste0("Rank ", unique(data.sel$sp.rank)[i], ":")
     fig.sp[[i]] <- ggplot(data = filter(data.sel, spp == unique(data.sel$spp)[i]),
                           aes(altitude, abundance)) +
         stat_smooth(se = FALSE, aes(color = region), alpha = 0.5, span = 0.6) +
         geom_jitter(aes(color = region), size = 2.5, alpha = 0.5) +
         scale_color_manual(values = paleta2) +
         labs(title = "",
-             subtitle = unique(data.sel$name_accepted)[i],
+             subtitle = bquote(.(sp.text) ~italic(.(unique(data.sel$name_accepted)[i]))),
              x = "", y = "", color = "Region",
              tag = LETTERS[i]) +
-        theme_classic() +
-        theme(plot.subtitle = element_text(face = "italic"))
+        theme_classic()
+#        theme(plot.subtitle = element_text(face = "italic"))
 }
 
 
